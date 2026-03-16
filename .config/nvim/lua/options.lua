@@ -22,6 +22,12 @@ opt.splitbelow = true
 opt.termguicolors = false
 opt.clipboard = "unnamedplus"
 
+-- Auto-reload files changed outside nvim (e.g. by Claude Code)
+opt.autoread = true
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold" }, {
+  command = "silent! checktime",
+})
+
 -- Disable netrw (oil.nvim replaces it)
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
