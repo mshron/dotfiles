@@ -113,3 +113,18 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Ghostty window/tab title
 title() { printf '\033]0;%s\033\\' "$*"; }
+
+# Set terminal title and create/attach tmux session
+work() {
+  if [ -z "$1" ]; then
+    echo "Usage: work <session name>"
+    return 1
+  fi
+  local name="$*"
+  title "$name"
+  if tmux has-session -t "=$name" 2>/dev/null; then
+    tmux attach-session -t "=$name"
+  else
+    tmux new-session -s "$name"
+  fi
+}
