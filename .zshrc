@@ -109,7 +109,6 @@ alias mark='open -a "Marked 2"'
 # Load API key from macOS Keychain. To set/update:
 #   security add-generic-password -U -a "$USER" -s "ANTHROPIC_API_KEY" -w "sk-ant-..."
 export ANTHROPIC_API_KEY=$(security find-generic-password -a "$USER" -s "ANTHROPIC_API_KEY" -w 2>/dev/null)
-source /Users/mshron/.oh-my-zsh/plugins/zsh-ai-auto-complete/zsh-ai-auto-complete.plugin.zsh
 export PATH="$HOME/.local/bin:$PATH"
 
 # Ghostty window/tab title
@@ -129,3 +128,5 @@ work() {
     tmux new-session -s "$name"
   fi
 }
+export PATH="$HOME/code/llama.cpp/build/bin:$PATH"
+export LEDGER_FILE=~/finance/2026.ledger
