@@ -103,6 +103,7 @@ export EDITOR='vim'
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+alias mark='open -a "Marked 2"'
 
 
 # Load API key from macOS Keychain. To set/update:
