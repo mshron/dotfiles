@@ -171,7 +171,61 @@ Gitsigns adds gutter indicators automatically in any git-tracked file:
 
 ---
 
-## 7. Quick Reference Card
+## 7. LSP & Completion
+
+### How it works
+
+Mason installs language servers locally (under `~/.local/share/nvim/mason/`). `nvim-lspconfig` connects those servers to Neovim's built-in LSP client. `blink.cmp` handles the completion UI, pulling suggestions from the LSP alongside paths, snippets, and buffer words.
+
+Currently installed: **basedpyright** (Python, type-checking mode: standard).
+
+To install additional servers, run `:Mason`, find the server, and press `i`. You'll then need to wire it up in `lsp.lua` the same way `basedpyright` is configured there.
+
+### Keybindings (active in any LSP-attached buffer)
+
+| Keybinding | Action |
+|------------|--------|
+| `gd` | Go to definition |
+| `gD` | Go to declaration |
+| `gr` | Find all references (opens Telescope) |
+| `gi` | Go to implementation |
+| `K` | Hover docs / type signature |
+| `<leader>rn` | Rename symbol across file |
+| `<leader>ca` | Code actions (imports, fixes, refactors) |
+| `]d` / `[d` | Jump to next / previous diagnostic |
+| `<leader>e` | Open diagnostic detail float |
+
+> **Note:** `<leader>e` here conflicts with the Oil file browser binding. Oil wins if you're not in an LSP-attached buffer; in one it opens the diagnostic float instead.
+
+### Completion (blink.cmp)
+
+The completion menu appears automatically in insert mode. Sources, in priority order: LSP → paths → snippets → buffer words.
+
+| Key | Action |
+|-----|--------|
+| `Tab` / `S-Tab` | Select next / previous item |
+| `Enter` | Confirm selection |
+| `Esc` | Dismiss menu |
+| `C-k` / `C-j` | Scroll documentation popup |
+
+Function signature help appears automatically when you type an opening `(`.
+
+### Diagnostics
+
+Errors and warnings appear inline as virtual text and in the gutter. They are not updated while you type — only on leaving insert mode — to avoid flickering.
+
+```
+E  red    — error
+W  yellow — warning
+I  cyan   — information
+H  blue   — hint
+```
+
+Use `]d` / `[d` to walk through all diagnostics in the file. The float that opens shows the full message and the source server.
+
+---
+
+## 8. Quick Reference Card
 
 ### Navigation
 
@@ -208,6 +262,18 @@ Gitsigns adds gutter indicators automatically in any git-tracked file:
 | `<leader>gp` | Preview hunk |
 | `<leader>gb` | Toggle git blame |
 
+### LSP (Python / any LSP-attached buffer)
+
+| Key | Action |
+|-----|--------|
+| `gd` | Go to definition |
+| `gr` | References (Telescope) |
+| `K` | Hover docs |
+| `<leader>rn` | Rename symbol |
+| `<leader>ca` | Code actions |
+| `]d` / `[d` | Next / previous diagnostic |
+| `<leader>e` | Diagnostic float |
+
 ### Misc
 
 | Key | Action |
@@ -215,6 +281,7 @@ Gitsigns adds gutter indicators automatically in any git-tracked file:
 | `<Esc>` | Clear search highlight |
 | `gx` | Open URL under cursor |
 | `:RenderMarkdown toggle` | Toggle markdown rendering |
+| `:Mason` | Manage LSP servers |
 
 ### tmux (prefix = `C-Space`)
 
