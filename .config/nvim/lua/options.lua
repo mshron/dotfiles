@@ -19,7 +19,7 @@ opt.scrolloff = 8
 opt.undofile = true
 opt.splitright = true
 opt.splitbelow = true
-opt.termguicolors = false
+opt.termguicolors = true
 opt.clipboard = "unnamedplus"
 
 -- Auto-reload files changed outside nvim (e.g. by Claude Code)
