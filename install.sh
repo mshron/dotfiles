@@ -39,6 +39,8 @@ ln -sf "$DOTFILES/.zshrc" "$HOME/.zshrc"
 ln -sf "$DOTFILES/.tmux.conf" "$HOME/.tmux.conf"
 mkdir -p "$HOME/.config"
 ln -sf "$DOTFILES/.config/nvim" "$HOME/.config/nvim"
+ln -sf "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
+ln -sf "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
 
 # Ghostty (macOS location)
 if [ "$(uname)" = "Darwin" ]; then
