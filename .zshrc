@@ -104,6 +104,22 @@ export EDITOR='vim'
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias mark='open -a "Marked 2"'
+markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighting, self-reaping
+  local port=${VIV_PORT:-31622}
+  local url="http://localhost:${port}/viewer${1:A}"
+  if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
+    (nohup vivify-server >/dev/null 2>&1 &)
+    for _ in {1..30}; do
+      curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health" && break
+      sleep 0.1
+    done
+  fi
+  if [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
+    "$CMUX_BUNDLED_CLI_PATH" browser open "$url" --focus true >/dev/null
+  else
+    open "$url"
+  fi
+}
 
 
 # Load API key from macOS Keychain. To set/update:

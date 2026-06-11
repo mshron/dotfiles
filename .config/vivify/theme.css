@@ -1,0 +1,87 @@
+/* Anthropic-inspired light theme; palette and Newsreader serif borrowed from
+ * darioamodei.com. Forces light mode by overriding Vivify's :root vars
+ * unconditionally (custom styles load after the defaults).
+ * Syntax colors are GitHub's light theme, copied from Vivify's own
+ * prefers-color-scheme: light block. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap');
+
+:root {
+    --bg-primary: #f0eee6;   /* ivory */
+    --bg-secondary: #e8e6dc;
+    --bg-tertiary: #e2dfd3;
+    --bg-code: #e8e6dc;
+    --bg-mark: #f8d47a;
+
+    --text-primary: #141413; /* near-black ink */
+    --text-secondary: #5e5d59;
+    --text-tertiary: #141413;
+    --text-link: #d14424;    /* Anthropic clay */
+    --text-mark: #141413;
+
+    --border-regular: #d5d2c6;
+    --border-muted: #e0ddd1;
+
+    --icon-directory: #87867f;
+    --icon-file: #87867f;
+    --icon-chevron: var(--text-secondary);
+
+    --syntax-text: #24292e;
+    --syntax-keyword: #d73a49;
+    --syntax-entity: #6f42c1;
+    --syntax-constant: #005cc5;
+    --syntax-string: #032f62;
+    --syntax-symbol: #e36209;
+    --syntax-comment: #6a737d;
+    --syntax-entity-tag: #22863a;
+    --syntax-storage-modifier-import: var(--syntax-text);
+
+    --syntax-markup-heading: var(--syntax-constant);
+    --syntax-markup-list: #735c0f;
+    --syntax-markup-italic: var(--syntax-text);
+    --syntax-markup-bold: var(--syntax-text);
+    --syntax-markup-inserted-fg: var(--syntax-entity-tag);
+    --syntax-markup-inserted-bg: #f0fff4;
+    --syntax-markup-deleted-fg: #b31d28;
+    --syntax-markup-deleted-bg: #ffeef0;
+
+    --alert-note: var(--text-link);
+    --alert-tip: #1a7f37;
+    --alert-important: #8250df;
+    --alert-warning: #bf8700;
+    --alert-caution: #cf222e;
+
+    --fallback-alert: var(--alert-note);
+
+    --ipynb-bg-error: rgba(255, 0, 0, 0.1);
+    --ipynb-ansi-black: #3e424d;
+    --ipynb-ansi-brblack: #282c36;
+    --ipynb-ansi-red: #e75c58;
+    --ipynb-ansi-brred: #b22b31;
+    --ipynb-ansi-green: #00a250;
+    --ipynb-ansi-brgreen: #007427;
+    --ipynb-ansi-yellow: #ddb62b;
+    --ipynb-ansi-bryellow: #b27d12;
+    --ipynb-ansi-blue: #208ffb;
+    --ipynb-ansi-brblue: #0065ca;
+    --ipynb-ansi-magenta: #d160c4;
+    --ipynb-ansi-brmagenta: #a03196;
+    --ipynb-ansi-cyan: #60c6c8;
+    --ipynb-ansi-brcyan: #258f8f;
+    --ipynb-ansi-white: #c5c1b4;
+    --ipynb-ansi-brwhite: #a1a6b2;
+}
+
+html {
+    font-family: 'Newsreader', 'Iowan Old Style', Charter, Georgia, serif;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+code, pre, kbd, samp {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
