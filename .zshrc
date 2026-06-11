@@ -87,7 +87,7 @@ source $ZSH/oh-my-zsh.sh
 # else
 #   export EDITOR='nvim'
 # fi
-export EDITOR='vim'
+export EDITOR='nvim'
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
@@ -120,6 +120,9 @@ markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighti
     open "$url"
   fi
 }
+set -x
+ff() {fzf --preview 'bat --style=numbers --color=always {}' | xargs -n1 nvim}
+set +x
 
 
 # Load API key from macOS Keychain. To set/update:
@@ -146,3 +149,49 @@ work() {
 }
 export PATH="$HOME/code/llama.cpp/build/bin:$PATH"
 export LEDGER_FILE=~/finance/2026.ledger
+alias dot='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
+
+sw() {
+  osascript -e '
+    tell application "System Events"
+      set wList to {}
+      repeat with p in (every application process whose visible is true)
+        repeat with w in (every window of p)
+          set end of wList to (name of p) & " | " & (name of w)
+        end repeat
+      end repeat
+      set AppleScript'\''s text item delimiters to linefeed
+      return wList as text
+    end tell
+  ' | fzf --prompt="switch> " | awk -F ' \\| ' '{print $1}' | xargs -I{} osascript -e "tell application \"{}\" to activate"
+}
+# Fuzzy search Inside Files
+fif() {
+  rg --line-number --no-heading --color=always "${1:-.}" |
+  fzf --ansi --delimiter=: \
+    --preview 'bat --color=always --highlight-line {2} {1}' \
+    --preview-window=right:60% \
+    --bind 'enter:become(nvim +{2} {1})'
+}
+
+# Fuzzy search Inside Files (interactive, search-as-you-type)
+fifi() {
+  fzf --ansi --disabled --delimiter=: \
+    --bind 'change:reload:rg --line-number --no-heading --color=always {q} || true' \
+    --preview 'bat --color=always --highlight-line {2} {1}' \
+    --preview-window=right:60% \
+    --bind 'enter:become(nvim +{2} {1})'
+}
+
+# cmux fixes
+if [[ -n "$CMUX_BUNDLE_ID" ]]; then
+  # 1. Prevent Claude Code activating the Ghostty Kitty keyboard protocol path:
+  #    cmux intercepts ctrl+space for chords, which disrupts protocol probing
+  #    and causes Claude Code to disable vim mode as a safety fallback.
+  export TERM_PROGRAM=xterm-256color
+
+  # 2. Export COLUMNS/LINES so child processes (Claude Code etc.) read the
+  #    correct terminal width instead of falling back to 0 or 80.
+  export COLUMNS LINES
+  TRAPWINCH() { export COLUMNS LINES }
+fi
