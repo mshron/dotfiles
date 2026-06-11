@@ -120,9 +120,7 @@ markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighti
     open "$url"
   fi
 }
-set -x
 ff() {fzf --preview 'bat --style=numbers --color=always {}' | xargs -n1 nvim}
-set +x
 
 
 # Load API key from macOS Keychain. To set/update:
