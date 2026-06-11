@@ -61,3 +61,5 @@ cursor-style = block
 copy-on-select = clipboard
 mouse-hide-while-typing = true
 scrollback-limit = 100000
+keybind = global:ctrl+`=toggle_quick_terminal
+quick-terminal-animation-duration = 0.1
