@@ -104,7 +104,7 @@ export EDITOR='nvim'
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias mark='open -a "Marked 2"'
-markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighting, self-reaping
+markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighting. Server auto-starts if down; long idle timeout (~config/vivify) keeps the URL alive across suspended/backgrounded panes so it won't reap mid-session.
   local port=${VIV_PORT:-31622}
   local url="http://localhost:${port}/viewer${1:A}"
   if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
@@ -115,7 +115,12 @@ markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighti
     done
   fi
   if [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
-    "$CMUX_BUNDLED_CLI_PATH" browser open "$url" --focus true >/dev/null
+    # Open in the currently focused window, not the agent's launch-time
+    # $CMUX_WORKSPACE_ID (which pins the preview to window 1).
+    local -a win_args
+    local win; win=$("$CMUX_BUNDLED_CLI_PATH" current-window 2>/dev/null)
+    [[ -n $win ]] && win_args=(--window "$win")
+    "$CMUX_BUNDLED_CLI_PATH" browser open "$url" "${win_args[@]}" --focus true >/dev/null
   else
     open "$url"
   fi
@@ -183,13 +188,18 @@ fifi() {
 
 # cmux fixes
 if [[ -n "$CMUX_BUNDLE_ID" ]]; then
-  # 1. Prevent Claude Code activating the Ghostty Kitty keyboard protocol path:
-  #    cmux intercepts ctrl+space for chords, which disrupts protocol probing
-  #    and causes Claude Code to disable vim mode as a safety fallback.
-  export TERM_PROGRAM=xterm-256color
+  # NOTE: previously spoofed TERM_PROGRAM=xterm-256color here to stop Claude
+  # Code's Kitty keyboard protocol probing (cmux intercepts ctrl+space for
+  # chords, breaking vim mode). Removed: masking the terminal identity pushes
+  # Claude Code onto a generic-xterm render path whose cursor math drifts on
+  # cmux's ghostty-based display (progressive UI corruption, cf. claude-code
+  # #55089 / ghostty #12062). If vim mode breaks again, rebind cmux's chord
+  # leader away from ctrl+space instead.
 
-  # 2. Export COLUMNS/LINES so child processes (Claude Code etc.) read the
-  #    correct terminal width instead of falling back to 0 or 80.
+  # Export COLUMNS/LINES so child processes (Claude Code etc.) read the
+  # correct terminal width instead of falling back to 0 or 80.
   export COLUMNS LINES
   TRAPWINCH() { export COLUMNS LINES }
 fi
+
+export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=35
