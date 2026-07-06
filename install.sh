@@ -41,6 +41,7 @@ mkdir -p "$HOME/.config"
 ln -sf "$DOTFILES/.config/nvim" "$HOME/.config/nvim"
 ln -sf "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
 ln -sf "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
+ln -sf "$DOTFILES/.config/vivify" "$HOME/.config/vivify"
 
 # Ghostty (macOS location)
 if [ "$(uname)" = "Darwin" ]; then
