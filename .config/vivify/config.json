@@ -1,3 +1,4 @@
 {
-    "styles": "theme.css"
+    "styles": "theme.css",
+    "timeout": 86400000
 }
