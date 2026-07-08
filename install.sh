@@ -43,6 +43,10 @@ ln -sf "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
 ln -sf "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
 ln -sf "$DOTFILES/.config/vivify" "$HOME/.config/vivify"
 
+# cmux — symlink the single managed file (cmux writes other state into this dir)
+mkdir -p "$HOME/.config/cmux"
+ln -sf "$DOTFILES/.config/cmux/cmux.json" "$HOME/.config/cmux/cmux.json"
+
 # Ghostty (macOS location)
 if [ "$(uname)" = "Darwin" ]; then
   GHOSTTY_DIR="$HOME/Library/Application Support/com.mitchellh.ghostty"

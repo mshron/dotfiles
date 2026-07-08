@@ -1,0 +1,246 @@
+{
+  "$schema": "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux.schema.json",
+  "schemaVersion": 1,
+
+  // This file uses JSON with comments (JSONC).
+  // Uncomment and edit any setting to make it file-managed.
+  // Remove a setting to fall back to the value saved in Settings.
+  // cmux creates this template on launch when ~/.config/cmux/cmux.json is missing.
+  // Legacy settings.json files are read only as fallback for keys not present here.
+
+  //   "app" : {
+  //     "renameSelectsExistingName" : true,
+  //     "warnBeforeClosingTab" : true,
+  //     "language" : "system",
+  //     "appIcon" : "automatic",
+  //     "preferredEditor" : "",
+  //     "keepWorkspaceOpenWhenClosingLastSurface" : false,
+  //     "openMarkdownInCmuxViewer" : false,
+  //     "sendAnonymousTelemetry" : true,
+  //     "newWorkspacePlacement" : "afterCurrent",
+  //     "menuBarOnly" : false,
+  //     "commandPaletteSearchesAllSurfaces" : false,
+  //     "warnBeforeQuit" : true,
+  //     "minimalMode" : false,
+  //     "appearance" : "system",
+  //     "focusPaneOnFirstClick" : false,
+  //     "reorderOnNotification" : true,
+  //     "iMessageMode" : false
+  //   },
+
+  //   "terminal" : {
+  //     "autoResumeAgentSessions" : true,
+  //     "showScrollBar" : true
+  //   },
+
+  //   "notifications" : {
+  //     "dockBadge" : true,
+  //     "unreadPaneRing" : true,
+  //     "customSoundFilePath" : "",
+  //     "sound" : "default",
+  //     "paneFlash" : true,
+  //     "showInMenuBar" : true,
+  //     "command" : ""
+  //   },
+
+  //   "sidebar" : {
+  //     "makePullRequestsClickable" : true,
+  //     "showBranchDirectory" : true,
+  //     "showPullRequests" : true,
+  //     "showPorts" : true,
+  //     "showLog" : true,
+  //     "openPortLinksInCmuxBrowser" : true,
+  //     "openPullRequestLinksInCmuxBrowser" : true,
+  //     "showSSH" : true,
+  //     "showNotificationMessage" : true,
+  //     "showCustomMetadata" : true,
+  //     "hideAllDetails" : false,
+  //     "branchLayout" : "vertical",
+  //     "showProgress" : true
+  //   },
+
+  //   "workspaceColors" : {
+  //     "indicatorStyle" : "leftRail",
+  //     "colors" : {
+  //       "Indigo" : "#283593",
+  //       "Olive" : "#4A5C18",
+  //       "Navy" : "#1A5276",
+  //       "Rose" : "#880E4F",
+  //       "Brown" : "#7B3F00",
+  //       "Amber" : "#7D6608",
+  //       "Blue" : "#1565C0",
+  //       "Purple" : "#6A1B9A",
+  //       "Magenta" : "#AD1457",
+  //       "Red" : "#C0392B",
+  //       "Crimson" : "#922B21",
+  //       "Charcoal" : "#3E4B5E",
+  //       "Teal" : "#006B6B",
+  //       "Aqua" : "#0E6B8C",
+  //       "Green" : "#196F3D",
+  //       "Orange" : "#A04000"
+  //     },
+  //     "notificationBadgeColor" : null,
+  //     "selectionColor" : null
+  //   },
+
+  //   "sidebarAppearance" : {
+  //     "matchTerminalBackground" : false,
+  //     "darkModeTintColor" : null,
+  //     "lightModeTintColor" : null,
+  //     "tintOpacity" : 0.17999999999999999,
+  //     "tintColor" : "#000000"
+  //   },
+
+  //   "automation" : {
+  //     "claudeCodeIntegration" : true,
+  //     "geminiIntegration" : true,
+  //     "portBase" : 9100,
+  //     "socketPassword" : "",
+  //     "claudeBinaryPath" : "",
+  //     "cursorIntegration" : true,
+  //     "portRange" : 10,
+  //     "socketControlMode" : "cmuxOnly"
+  //   },
+
+  //   "browser" : {
+  //     "openTerminalLinksInCmuxBrowser" : true,
+  //     "showImportHintOnBlankTabs" : true,
+  //     "reactGrabVersion" : "0.1.29",
+  //     "urlsToAlwaysOpenExternally" : [
+  // 
+  //     ],
+  //     "insecureHttpHostsAllowedInEmbeddedBrowser" : [
+  //       "localhost",
+  //       "*.localhost",
+  //       "127.0.0.1",
+  //       "::1",
+  //       "0.0.0.0",
+  //       "*.localtest.me"
+  //     ],
+  //     "defaultSearchEngine" : "google",
+  //     "theme" : "system",
+  //     "interceptTerminalOpenCommandInCmuxBrowser" : true,
+  //     "hostsToOpenInEmbeddedBrowser" : [
+  // 
+  //     ],
+  //     "showSearchSuggestions" : true
+  //   },
+
+  //   "shortcuts" : {
+  //     "bindings" : {
+  //       "toggleFullScreen" : "cmd+ctrl+f",
+  //       "nextSidebarTab" : "cmd+ctrl+]",
+  //       "editWorkspaceDescription" : "cmd+opt+e",
+  //       "useSelectionForFind" : "cmd+e",
+  //       "sendFeedback" : "cmd+opt+f",
+  //       "findInDirectory" : "cmd+shift+f",
+  //       "splitRight" : "cmd+d",
+  //       "toggleSidebar" : "cmd+b",
+  //       "focusUp" : "cmd+opt+↑",
+  //       "saveFilePreview" : "cmd+s",
+  //       "hideFind" : "cmd+shift+opt+f",
+  //       "toggleBrowserDeveloperTools" : "cmd+opt+i",
+  //       "showNotifications" : "cmd+i",
+  //       "equalizeSplits" : "cmd+ctrl+=",
+  //       "quit" : "cmd+q",
+  //       "triggerFlash" : "cmd+shift+h",
+  //       "prevSurface" : "cmd+shift+[",
+  //       "goToWorkspace" : "cmd+p",
+  //       "selectWorkspaceByNumber" : "cmd+1",
+  //       "jumpToUnread" : "cmd+shift+u",
+  //       "showBrowserJavaScriptConsole" : "cmd+opt+c",
+  //       "toggleFileExplorer" : "cmd+opt+b",
+  //       "browserZoomIn" : "cmd+=",
+  //       "toggleTerminalCopyMode" : "cmd+shift+m",
+  //       "browserBack" : "cmd+[",
+  //       "browserZoomOut" : "cmd+-",
+  //       "openFolder" : "cmd+o",
+  //       "focusLeft" : "cmd+opt+←",
+  //       "newWindow" : "cmd+shift+n",
+  //       "openSettings" : "cmd+,",
+  //       "focusDown" : "cmd+opt+↓",
+  //       "nextSurface" : "cmd+shift+]",
+  //       "toggleReactGrab" : "cmd+shift+g",
+  //       "browserReload" : "cmd+r",
+  //       "focusBrowserAddressBar" : "cmd+l",
+  //       "commandPalettePrevious" : "ctrl+p",
+  //       "reopenClosedBrowserPanel" : "cmd+shift+t",
+  //       "newTab" : "cmd+n",
+  //       "closeOtherTabsInPane" : "cmd+opt+t",
+  //       "reopenPreviousSession" : "cmd+shift+o",
+  //       "focusRightSidebar" : "cmd+shift+e",
+  //       "showHideAllWindows" : "cmd+opt+ctrl+.",
+  //       "commandPaletteNext" : "ctrl+n",
+  //       "renameWorkspace" : "cmd+shift+r",
+  //       "focusRight" : "cmd+opt+→",
+  //       "renameTab" : "cmd+r",
+  //       "toggleSplitZoom" : "cmd+shift+\r",
+  //       "openBrowser" : "cmd+shift+l",
+  //       "closeTab" : "cmd+w",
+  //       "find" : "cmd+f",
+  //       "browserForward" : "cmd+]",
+  //       "selectSurfaceByNumber" : "ctrl+1",
+  //       "closeWorkspace" : "cmd+shift+w",
+  //       "splitBrowserDown" : "cmd+shift+opt+d",
+  //       "browserZoomReset" : "cmd+0",
+  //       "newSurface" : "cmd+t",
+  //       "commandPalette" : "cmd+shift+p",
+  //       "findPrevious" : "cmd+opt+g",
+  //       "reloadConfiguration" : "cmd+shift+,",
+  //       "splitDown" : "cmd+shift+d",
+  //       "splitBrowserRight" : "cmd+opt+d",
+  //       "closeWindow" : "cmd+ctrl+w",
+  //       "prevSidebarTab" : "cmd+ctrl+[",
+  //       "findNext" : "cmd+g"
+  //     }
+  //   },
+
+  "shortcuts": {
+    "bindings": {
+      // Splits — tmux: prefix | / prefix -
+      "splitRight": ["ctrl+space", "shift+\\"],
+      "splitDown": ["ctrl+space", "-"],
+
+      // Pane focus — tmux: prefix h/j/k/l
+      "focusLeft": ["ctrl+space", "h"],
+      "focusDown": ["ctrl+space", "j"],
+      "focusUp": ["ctrl+space", "k"],
+      "focusRight": ["ctrl+space", "l"],
+
+      // Pane zoom & equalize — tmux: prefix z
+      "toggleSplitZoom": ["ctrl+space", "z"],
+      "equalizeSplits": ["ctrl+space", "="],
+
+      // Copy mode — tmux: prefix [
+      "toggleTerminalCopyMode": ["ctrl+space", "["],
+
+      // Surfaces/tabs — tmux: prefix x/,  (newSurface/nextSurface/prevSurface left at defaults: cmd+t / cmd+shift+] / cmd+shift+[)
+      "closeTab": ["ctrl+space", "x"],
+      "renameTab": ["ctrl+space", ","],
+
+      // Select surface by number — tmux: prefix 1-9
+      "selectSurface1": ["ctrl+space", "1"],
+      "selectSurface2": ["ctrl+space", "2"],
+      "selectSurface3": ["ctrl+space", "3"],
+      "selectSurface4": ["ctrl+space", "4"],
+      "selectSurface5": ["ctrl+space", "5"],
+      "selectSurface6": ["ctrl+space", "6"],
+      "selectSurface7": ["ctrl+space", "7"],
+      "selectSurface8": ["ctrl+space", "8"],
+      "selectSurface9": ["ctrl+space", "9"],
+
+      // Workspaces (tmux sessions) — tmux: prefix s / $ / ( / )
+      "goToWorkspace": ["ctrl+space", "s"],
+      "renameWorkspace": ["ctrl+space", "shift+4"],
+      "previousWorkspace": ["ctrl+space", "shift+9"],
+      "nextWorkspace": ["ctrl+space", "shift+0"],
+      "closeWorkspace": ["ctrl+space", "shift+x"],
+
+      // Command palette — tmux: prefix : (command mode)
+      "commandPalette": ["ctrl+space", "shift+;"],
+
+      // Reload config — tmux: prefix r
+      "reloadConfiguration": ["ctrl+space", "r"]
+    }
+  }
+}
