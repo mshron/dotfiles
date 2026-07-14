@@ -42,15 +42,18 @@ mkdir -p "$HOME/.config"
 ln -sf "$DOTFILES/.config/nvim" "$HOME/.config/nvim"
 ln -sf "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
 ln -sf "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
-ln -sf "$DOTFILES/.config/vivify" "$HOME/.config/vivify"
+# vivify config is owned by the mark skill (single tracked copy)
+ln -sfn "$DOTFILES/.claude/skills/mark/assets" "$HOME/.config/vivify"
 
 # cmux — symlink the single managed file (cmux writes other state into this dir)
 mkdir -p "$HOME/.config/cmux"
 ln -sf "$DOTFILES/.config/cmux/cmux.json" "$HOME/.config/cmux/cmux.json"
 
-# Claude Code — symlink the single managed hook (Claude writes other state into ~/.claude)
-mkdir -p "$HOME/.claude/hooks"
+# Claude Code — symlink the managed pieces (Claude writes other state into ~/.claude)
+mkdir -p "$HOME/.claude/hooks" "$HOME/.claude/skills"
 ln -sf "$DOTFILES/.claude/hooks/context-bar.sh" "$HOME/.claude/hooks/context-bar.sh"
+ln -sfn "$DOTFILES/.claude/skills/mark" "$HOME/.claude/skills/mark"
+"$DOTFILES/.claude/skills/mark/scripts/setup.sh" || true
 
 # Ghostty (macOS location)
 if [ "$(uname)" = "Darwin" ]; then

@@ -1,0 +1,68 @@
+---
+name: mark
+description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes feedback to <file>.comments.md. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a <file>.comments.md exists next to a markdown doc you are editing.
+---
+
+# mark — markdown preview with inline review
+
+Two halves: a `mark <file.md>` command that opens a live-reloading browser
+preview, and a review loop where the human clicks any paragraph in the
+preview to leave a comment, which lands in `<file>.comments.md` for the
+agent to address.
+
+## Quick start
+
+```bash
+mark docs/memos/proposal.md   # opens http://localhost:31622/viewer/<abs-path>
+```
+
+The preview live-reloads on save, renders KaTeX and syntax highlighting,
+and stays alive for 24h idle so the URL survives suspended terminal panes.
+
+## First-run setup
+
+If `mark` is not on PATH or `~/.config/vivify/comments-server.mjs` is
+missing, run setup:
+
+1. Dependencies: `vivify-server` and `node`, both via Homebrew. **Ask the
+   user before installing anything** (`brew install vivify node`).
+2. Run `scripts/setup.sh` from this skill's directory. It is idempotent:
+   copies config files to `~/.config/vivify/` (never overwrites existing
+   files), installs `mark` to `~/.local/bin/`, and warns about PATH or
+   shadowing problems (e.g. an old `alias mark='open -a "Marked 2"'`).
+
+macOS only as written (`open`, Homebrew).
+
+## Review workflow: <file>.comments.md
+
+When working on a markdown document, check for `<file>.comments.md` next to
+it (e.g. `proposal.md.comments.md`). It holds the reader's inline review
+comments, one block per comment, headed:
+
+```markdown
+## <name>:<line> — "<quoted passage>" (<timestamp>)
+```
+
+Treat each block as a change request against the quoted passage.
+
+- **After addressing a comment, delete its block.** Comments left in the
+  file render as open feedback in the reader's preview.
+- **If the resolution is worth recording** (e.g. you disagreed and left the
+  text as-is), instead append ` [resolved]` to the end of its heading and
+  add your response to the block body.
+- **Never touch comments you haven't addressed** — they must stay open.
+
+The comment sidebar in the preview updates live as you edit the file, so
+the reader sees resolutions as they happen.
+
+## How it works
+
+- `vivify-server` (port `$VIV_PORT`, default 31622) serves the preview;
+  `~/.config/vivify/config.json` points it at `theme.css` (Anthropic-style
+  theme) and injects `comments.js` (the click-to-comment UI).
+- `comments-server.mjs` (port `$VIV_COMMENTS_PORT`, default 31623) is a
+  zero-dependency node sidecar that accepts comment POSTs and appends them
+  to `<file>.comments.md`. It polls Vivify's `/health` and exits when the
+  preview server is gone.
+- `mark` auto-starts both servers if they are down, then opens the URL
+  (via cmux's browser when running inside cmux, else the default browser).

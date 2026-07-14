@@ -103,31 +103,8 @@ export EDITOR='nvim'
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-alias mark='open -a "Marked 2"'
-markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighting. Server auto-starts if down; long idle timeout (~config/vivify) keeps the URL alive across suspended/backgrounded panes so it won't reap mid-session. Also starts the inline-comments sidecar.
-  local port=${VIV_PORT:-31622}
-  local url="http://localhost:${port}/viewer${1:A}"
-  if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
-    (nohup vivify-server >/dev/null 2>&1 &)
-    for _ in {1..30}; do
-      curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health" && break
-      sleep 0.1
-    done
-  fi
-  if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${VIV_COMMENTS_PORT:-31623}/health"; then
-    (nohup node ~/.config/vivify/comments-server.mjs >/dev/null 2>&1 &)
-  fi
-  if [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
-    # Open in the currently focused window, not the agent's launch-time
-    # $CMUX_WORKSPACE_ID (which pins the preview to window 1).
-    local -a win_args
-    local win; win=$("$CMUX_BUNDLED_CLI_PATH" current-window 2>/dev/null)
-    [[ -n $win ]] && win_args=(--window "$win")
-    "$CMUX_BUNDLED_CLI_PATH" browser open "$url" "${win_args[@]}" --focus true >/dev/null
-  else
-    open "$url"
-  fi
-}
+# markdown preview: `mark` is now a standalone script (~/.local/bin/mark),
+# installed by the mark skill (.claude/skills/mark) — see its setup.sh
 ff() {fzf --preview 'bat --style=numbers --color=always {}' | xargs -n1 nvim}
 
 
