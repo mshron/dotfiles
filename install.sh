@@ -47,6 +47,10 @@ ln -sf "$DOTFILES/.config/vivify" "$HOME/.config/vivify"
 mkdir -p "$HOME/.config/cmux"
 ln -sf "$DOTFILES/.config/cmux/cmux.json" "$HOME/.config/cmux/cmux.json"
 
+# Claude Code — symlink the single managed hook (Claude writes other state into ~/.claude)
+mkdir -p "$HOME/.claude/hooks"
+ln -sf "$DOTFILES/.claude/hooks/context-bar.sh" "$HOME/.claude/hooks/context-bar.sh"
+
 # Ghostty (macOS location)
 if [ "$(uname)" = "Darwin" ]; then
   GHOSTTY_DIR="$HOME/Library/Application Support/com.mitchellh.ghostty"
