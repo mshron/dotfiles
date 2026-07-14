@@ -134,7 +134,6 @@ ff() {fzf --preview 'bat --style=numbers --color=always {}' | xargs -n1 nvim}
 # Load API key from macOS Keychain. To set/update:
 #   security add-generic-password -U -a "$USER" -s "ANTHROPIC_API_KEY" -w "sk-ant-..."
 export ANTHROPIC_API_KEY=$(security find-generic-password -a "$USER" -s "ANTHROPIC_API_KEY" -w 2>/dev/null)
-export PATH="$HOME/.local/bin:$PATH"
 
 # Ghostty window/tab title
 title() { printf '\033]0;%s\033\\' "$*"; }
@@ -153,7 +152,6 @@ work() {
     tmux new-session -s "$name"
   fi
 }
-export PATH="$HOME/code/llama.cpp/build/bin:$PATH"
 export LEDGER_FILE=~/finance/2026.ledger
 alias dot='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
 
