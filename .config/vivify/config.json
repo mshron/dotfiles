@@ -1,4 +1,5 @@
 {
     "styles": "theme.css",
-    "timeout": 86400000
+    "timeout": 86400000,
+    "scripts": "comments.js"
 }

@@ -104,7 +104,7 @@ export EDITOR='nvim'
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias mark='open -a "Marked 2"'
-markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighting. Server auto-starts if down; long idle timeout (~config/vivify) keeps the URL alive across suspended/backgrounded panes so it won't reap mid-session.
+markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighting. Server auto-starts if down; long idle timeout (~config/vivify) keeps the URL alive across suspended/backgrounded panes so it won't reap mid-session. Also starts the inline-comments sidecar.
   local port=${VIV_PORT:-31622}
   local url="http://localhost:${port}/viewer${1:A}"
   if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
@@ -113,6 +113,9 @@ markb() {  # browser markdown preview via Vivify: live reload, KaTeX, highlighti
       curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health" && break
       sleep 0.1
     done
+  fi
+  if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${VIV_COMMENTS_PORT:-31623}/health"; then
+    (nohup node ~/.config/vivify/comments-server.mjs >/dev/null 2>&1 &)
   fi
   if [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
     # Open in the currently focused window, not the agent's launch-time
