@@ -1,6 +1,6 @@
 ---
 name: mark
-description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes feedback to <file>.comments.md. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a <file>.comments.md exists next to a markdown doc you are editing.
+description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes feedback to <file>.comments.md. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a `.comments.md` review file (full filename + suffix, e.g. `spec.md.comments.md`) exists next to a markdown doc you are editing.
 ---
 
 # mark — markdown preview with inline review
@@ -35,9 +35,10 @@ macOS only as written (`open`, Homebrew).
 
 ## Review workflow: <file>.comments.md
 
-When working on a markdown document, check for `<file>.comments.md` next to
-it (e.g. `proposal.md.comments.md`). It holds the reader's inline review
-comments, one block per comment, headed:
+When working on a markdown document, check for a comments file next to it,
+named by appending `.comments.md` to the **full filename** — `proposal.md` →
+`proposal.md.comments.md`, never `proposal.comments.md`. It holds the
+reader's inline review comments, one block per comment, headed:
 
 ```markdown
 ## <name>:<line> — "<quoted passage>" (<timestamp>)
