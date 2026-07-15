@@ -45,6 +45,14 @@ comments, one block per comment, headed:
 
 Treat each block as a change request against the quoted passage.
 
+**The quote is the anchor, not the line number.** Comments are written
+against a snapshot of the doc, so line numbers drift as it is edited —
+locate the passage by searching for the quote, and use the line number
+only as a tiebreaker when the quote appears more than once. If the quoted
+passage has been deleted or rewritten beyond recognition, say so in your
+response rather than guessing. (The preview sidebar resolves anchors the
+same way: exact line first, then first block starting with the quote.)
+
 - **After addressing a comment, delete its block.** Comments left in the
   file render as open feedback in the reader's preview.
 - **If the resolution is worth recording** (e.g. you disagreed and left the
