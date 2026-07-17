@@ -16,25 +16,8 @@ agent to address.
 
 ## Quick start
 
-`mark` is a shell command (installed to `~/.local/bin/`). Run it in a
-terminal with the file to preview:
-
-```bash
-mark docs/memos/proposal.md   # opens http://localhost:31622/viewer/<abs-path>
-```
-
-Inside a coding agent, prefix it with `!` to run it from the prompt
-without leaving the conversation:
-
-```text
-! mark docs/memos/proposal.md
-```
-
-The preview live-reloads on save, renders KaTeX and syntax highlighting,
-and stays alive for 24h idle so the URL survives suspended terminal panes.
-
-Or just ask your agent to preview a markdown file — it runs `mark`
-itself. A typical round-trip:
+Ask your agent to preview a markdown file — it runs `mark` itself. A
+typical round-trip:
 
 ```text
 User:   Write up the migration plan in docs/memos/migration.md and open a preview.
@@ -43,6 +26,24 @@ User:   [reads the preview, clicks two paragraphs, leaves comments, then:]
         Address my comments.
 Agent:  [reads docs/memos/migration.md.comments.md, edits the doc, deletes the
          resolved blocks — the preview and its comment sidebar update live]
+```
+
+This loads a live preview in the browser: it reloads on save, renders
+KaTeX and syntax highlighting, and stays alive for 24h idle so the URL
+survives suspended terminal panes.
+
+`mark` can also be launched manually, two ways. It is a shell command
+(installed to `~/.local/bin/`), so from a terminal:
+
+```bash
+mark docs/memos/proposal.md   # opens http://localhost:31622/viewer/<abs-path>
+```
+
+Or inside a coding agent, prefix it with `!` to run it from the prompt
+without leaving the conversation:
+
+```text
+! mark docs/memos/proposal.md
 ```
 
 ## First-run setup
