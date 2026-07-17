@@ -2,7 +2,7 @@
 name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
 author: "Max Shron"
-version: "1.1.1"
+version: "1.1.2"
 version_date: "2026-07-17"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -22,6 +22,17 @@ mark docs/memos/proposal.md   # opens http://localhost:31622/viewer/<abs-path>
 
 The preview live-reloads on save, renders KaTeX and syntax highlighting,
 and stays alive for 24h idle so the URL survives suspended terminal panes.
+
+A typical Claude Code round-trip:
+
+```text
+User:   Write up the migration plan in docs/memos/migration.md and open a preview.
+Agent:  [writes the doc, runs `mark docs/memos/migration.md`]
+User:   [reads the preview, clicks two paragraphs, leaves comments, then:]
+        Address my comments.
+Agent:  [reads docs/memos/migration.md.comments.md, edits the doc, deletes the
+         resolved blocks — the preview and its comment sidebar update live]
+```
 
 ## First-run setup
 
