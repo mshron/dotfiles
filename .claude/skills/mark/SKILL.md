@@ -2,7 +2,7 @@
 name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
 author: "Max Shron"
-version: "1.1.2"
+version: "1.2.0"
 version_date: "2026-07-17"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -16,14 +16,25 @@ agent to address.
 
 ## Quick start
 
+`mark` is a shell command (installed to `~/.local/bin/`). Run it in a
+terminal with the file to preview:
+
 ```bash
 mark docs/memos/proposal.md   # opens http://localhost:31622/viewer/<abs-path>
+```
+
+Inside a coding agent, prefix it with `!` to run it from the prompt
+without leaving the conversation:
+
+```text
+! mark docs/memos/proposal.md
 ```
 
 The preview live-reloads on save, renders KaTeX and syntax highlighting,
 and stays alive for 24h idle so the URL survives suspended terminal panes.
 
-A typical Claude Code round-trip:
+Or just ask your agent to preview a markdown file — it runs `mark`
+itself. A typical round-trip:
 
 ```text
 User:   Write up the migration plan in docs/memos/migration.md and open a preview.
@@ -80,16 +91,26 @@ same way: exact line first, then first block starting with the quote.)
 - **Never touch comments you haven't addressed** — they must stay open.
 
 The comment sidebar in the preview updates live as you edit the file, so
-the reader sees resolutions as they happen.
+the reader sees resolutions as they happen. The reader can also click an
+open comment in the preview to edit its text in place.
 
 ## How it works
 
 - `vivify-server` (port `$VIV_PORT`, default 31622) serves the preview;
   `~/.config/vivify/config.json` points it at `theme.css` (Anthropic-style
-  theme) and injects `comments.js` (the click-to-comment UI).
+  theme) and injects `comments.js` (the click-to-comment UI). Vivify reads
+  and inlines these at **startup** — after editing them, restart
+  `vivify-server` (and reload the page), or the browser keeps getting the
+  old code.
 - `comments-server.mjs` (port `$VIV_COMMENTS_PORT`, default 31623) is a
-  zero-dependency node sidecar that accepts comment POSTs and appends them
-  to `<file>.comments.md`. It polls Vivify's `/health` and exits when the
-  preview server is gone.
+  zero-dependency node sidecar that accepts comment POSTs — new comments
+  are appended to `<file>.comments.md`, edits rewrite the matching block in
+  place. It polls Vivify's `/health` and exits when the preview server is
+  gone.
+- Vivify's own live-reload watches the file inode, which dies when a file
+  is saved by rename (atomic replace — how Claude Code and many editors
+  write). `comments.js` covers this: it polls the sidecar's `/mtimes` and
+  reloads the page itself when the doc changed but Vivify didn't redraw;
+  a changed (or deleted) comments file just re-renders the notes.
 - `mark` auto-starts both servers if they are down, then opens the URL
   (via cmux's browser when running inside cmux, else the default browser).

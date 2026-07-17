@@ -37,6 +37,7 @@
       '.viv-comment-note {' +
       '  margin: 2px 0 4px 1.5em; font-style: italic; font-size: 0.9em;' +
       '  color: var(--text-secondary); white-space: pre-wrap;' +
+      '  cursor: pointer;' +
       '}' +
       '.viv-comment-note-timestamp {' +
       '  font-style: normal; font-size: 0.85em;' +
@@ -47,6 +48,9 @@
   function closeOpenForm() {
     var open = document.querySelector('.viv-comment-form');
     if (open) open.remove();
+    // A note hidden behind an edit form comes back when the form goes away.
+    var hidden = document.querySelectorAll('.viv-comment-note[hidden]');
+    for (var i = 0; i < hidden.length; i++) hidden[i].hidden = false;
   }
 
   function commentsBase() {
@@ -56,6 +60,8 @@
   function buildNote(comment) {
     var note = document.createElement('div');
     note.className = 'viv-comment-note';
+    note.title = 'Click to edit';
+    note._vivComment = comment;
     note.appendChild(document.createTextNode(comment.comment));
     if (comment.timestamp) {
       var timestamp = document.createElement('span');
@@ -72,7 +78,8 @@
 
     var candidates = document.querySelectorAll('.source-line');
     for (var i = 0; i < candidates.length; i++) {
-      if (candidates[i].textContent.trim().indexOf(comment.quote) === 0) return candidates[i];
+      // Same whitespace collapsing as when the quote was captured.
+      if (candidates[i].textContent.trim().replace(/\s+/g, ' ').indexOf(comment.quote) === 0) return candidates[i];
     }
     return null;
   }
@@ -123,14 +130,15 @@
       .catch(function () {});
   }
 
-  function openForm(block) {
-    closeOpenForm();
-
+  // Shared form for new comments and edits. submit(text) returns the POST's
+  // fetch promise; on success the form closes and comments re-render.
+  function buildForm(initialText, submit) {
     var form = document.createElement('div');
     form.className = 'viv-comment-form';
 
     var textarea = document.createElement('textarea');
     textarea.rows = 3;
+    textarea.value = initialText;
 
     var actions = document.createElement('div');
     actions.className = 'viv-comment-actions';
@@ -153,28 +161,13 @@
     form.appendChild(actions);
     form.appendChild(error);
 
-    block.insertAdjacentElement('afterend', form);
-    textarea.focus();
-
     function save() {
       var comment = textarea.value.trim();
       if (!comment) return;
-      var payload = {
-        file: window.VIV_PATH,
-        line: Number(block.dataset.sourceLine) + 1,
-        quote: block.textContent.trim().slice(0, 80),
-        comment: comment,
-      };
-      // Target location.hostname, not localhost: Vivify binds all
-      // interfaces and pages may be viewed from another machine.
-      fetch(commentsBase() + '/comment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      submit(comment)
         .then(function (res) {
           if (res.ok) {
-            form.remove();
+            closeOpenForm();
             renderComments();
           } else {
             error.style.display = 'block';
@@ -186,27 +179,77 @@
     }
 
     saveBtn.addEventListener('click', save);
-    cancelBtn.addEventListener('click', function () {
-      form.remove();
-    });
+    cancelBtn.addEventListener('click', closeOpenForm);
     textarea.addEventListener('keydown', function (event) {
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
         event.preventDefault();
         save();
       } else if (event.key === 'Escape') {
         event.preventDefault();
-        form.remove();
+        closeOpenForm();
       }
     });
+
+    return form;
+  }
+
+  function openForm(block) {
+    closeOpenForm();
+    var form = buildForm('', function (text) {
+      // Target location.hostname, not localhost: Vivify binds all
+      // interfaces and pages may be viewed from another machine.
+      return fetch(commentsBase() + '/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file: window.VIV_PATH,
+          line: Number(block.dataset.sourceLine) + 1,
+          // Collapse whitespace: textContent of a wrapped paragraph contains
+          // newlines, and a newline in the quote splits the heading line.
+          quote: block.textContent.trim().replace(/\s+/g, ' ').slice(0, 80),
+          comment: text,
+        }),
+      });
+    });
+    block.insertAdjacentElement('afterend', form);
+    form.querySelector('textarea').focus();
+  }
+
+  // Clicking an unresolved note swaps it for a pre-filled form; the server
+  // finds the matching block by its heading fields and rewrites it in place.
+  function openEditForm(note) {
+    var comment = note._vivComment;
+    closeOpenForm();
+    var form = buildForm(comment.comment, function (text) {
+      return fetch(commentsBase() + '/comment/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file: window.VIV_PATH,
+          line: comment.line,
+          quote: comment.quote,
+          timestamp: comment.timestamp,
+          oldComment: comment.comment,
+          comment: text,
+        }),
+      });
+    });
+    note.hidden = true;
+    note.insertAdjacentElement('afterend', form);
+    form.querySelector('textarea').focus();
   }
 
   document.addEventListener('click', function (event) {
-    var block = event.target.closest('.source-line');
-    if (!block) return;
     if (event.target.closest('a, button, input, textarea')) return;
     if (event.target.closest('.viv-comment-form')) return;
     if (!window.getSelection().isCollapsed) return;
-    openForm(block);
+    var note = event.target.closest('.viv-comment-note');
+    if (note) {
+      openEditForm(note);
+      return;
+    }
+    var block = event.target.closest('.source-line');
+    if (block) openForm(block);
   });
 
   renderComments();
@@ -229,6 +272,7 @@
       (node.classList.contains('viv-comment-note') || node.classList.contains('viv-comment-form'));
   }
 
+  var lastDocMutation = 0;
   var observer = new MutationObserver(function (mutations) {
     for (var i = 0; i < mutations.length; i++) {
       var mutation = mutations[i];
@@ -237,6 +281,7 @@
       for (var j = 0; j < mutation.removedNodes.length; j++) changed.push(mutation.removedNodes[j]);
       for (var j = 0; j < changed.length; j++) {
         if (!isOwnNode(changed[j])) {
+          lastDocMutation = Date.now();
           scheduleRenderComments();
           return;
         }
@@ -244,4 +289,44 @@
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  // Reload fallback: vivify's fs.watch dies when the doc is saved via
+  // rename (atomic replace — how Claude Code and many editors write files),
+  // after which its live-reload never fires again. Poll mtimes via the
+  // sidecar; if the doc changed and vivify didn't redraw within a beat,
+  // reload the page ourselves. A changed comments file just re-renders
+  // the notes.
+  var docMtime = null;
+  var commentsMtime = null;
+  var reloadPendingSince = 0;
+  setInterval(function () {
+    fetch(commentsBase() + '/mtimes?file=' + encodeURIComponent(window.VIV_PATH))
+      .then(function (res) {
+        return res.ok ? res.json() : null;
+      })
+      .then(function (m) {
+        if (!m) return;
+        if (docMtime === null && commentsMtime === null) {
+          // First poll: anything written since the page rendered would be
+          // absorbed into the baseline and missed — compare against the
+          // page's load time instead.
+          if (m.comments === null || m.comments > performance.timeOrigin) scheduleRenderComments();
+          if (m.doc !== null && m.doc > performance.timeOrigin) reloadPendingSince = Date.now();
+        } else {
+          if (m.comments !== commentsMtime) scheduleRenderComments();
+          if (m.doc !== docMtime && !reloadPendingSince) reloadPendingSince = Date.now();
+        }
+        commentsMtime = m.comments;
+        docMtime = m.doc;
+        if (!reloadPendingSince || Date.now() - reloadPendingSince < 1500) return;
+        if (lastDocMutation >= reloadPendingSince) {
+          reloadPendingSince = 0; // vivify's own reload handled it
+          return;
+        }
+        // Never blow away a comment draft; retry on the next tick instead.
+        if (document.querySelector('.viv-comment-form')) return;
+        location.reload();
+      })
+      .catch(function () {});
+  }, 2000);
 })();
