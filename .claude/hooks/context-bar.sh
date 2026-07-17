@@ -7,6 +7,7 @@
 
 input=$(cat)
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+model=$(echo "$input" | jq -r '.model.display_name // .model.id // empty')
 window_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
 
 # Absolute tokens (in k), derived from the real window size
@@ -52,6 +53,17 @@ fi
 
 # Git branch, plus worktree name when in a linked worktree
 dir=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+
+# Current path, with ~ standing in for $HOME
+path_info=''
+if [ -n "$dir" ]; then
+  disp_dir="$dir"
+  case "$disp_dir" in
+    "$HOME") disp_dir='~' ;;
+    "$HOME"/*) disp_dir="~${disp_dir#$HOME}" ;;
+  esac
+  path_info="\033[0;34m${disp_dir}\033[0m"
+fi
 git_info=''
 if [ -n "$dir" ] && git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   branch=$(git -C "$dir" branch --show-current 2>/dev/null)
@@ -60,10 +72,40 @@ if [ -n "$dir" ] && git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&
   common_dir=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
   if [ -n "$git_dir" ] && [ "$git_dir" != "$common_dir" ]; then
     wt_name=$(basename "$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)")
-    git_info=" \033[0;36m⎇ ${branch} [wt:${wt_name}]\033[0m"
+    git_info="\033[0;36m⎇ ${branch} [wt:${wt_name}]\033[0m"
   else
-    git_info=" \033[0;36m⎇ ${branch}\033[0m"
+    git_info="\033[0;36m⎇ ${branch}\033[0m"
   fi
 fi
 
-printf "${color}${bar} ${tokens_k}k\033[0m${git_info}"
+model_info=''
+[ -n "$model" ] && model_info="\033[0;35m${model}\033[0m"
+
+# Left cluster: bar+tokens, path, branch — space-separated.
+left="${color}${bar} ${tokens_k}k\033[0m"
+[ -n "$path_info" ] && left="${left} ${path_info}"
+[ -n "$git_info" ] && left="${left} ${git_info}"
+
+if [ -n "$model_info" ]; then
+  # Right-justify the model by padding to the terminal width. COLUMNS is set
+  # by Claude Code (v2.1.153+); tput/TTY tricks don't work in this context.
+  # Claude Code reserves a few columns of right padding, so its usable width
+  # is narrower than COLUMNS — subtract a margin or the tail gets truncated.
+  margin=3
+  cols=$(( ${COLUMNS:-80} - margin ))
+  # Visible width = character count after stripping ANSI escapes (the glyphs
+  # used here — █ ⎇ ~ — are all one display column each).
+  strip_ansi() { printf '%b' "$1" | sed $'s/\033\\[[0-9;]*m//g'; }
+  left_plain=$(strip_ansi "$left")
+  model_plain=$(strip_ansi "$model_info")
+  left_cols=${#left_plain}
+  model_cols=${#model_plain}
+  pad=$((cols - left_cols - model_cols))
+  if [ "$pad" -lt 1 ]; then
+    # Not enough room to right-justify; a single space keeps it on one line.
+    pad=1
+  fi
+  printf '%b%*s%b' "$left" "$pad" '' "$model_info"
+else
+  printf '%b' "$left"
+fi
