@@ -51,6 +51,7 @@ ln -sf "$DOTFILES/.config/cmux/cmux.json" "$HOME/.config/cmux/cmux.json"
 
 # Claude Code — symlink the managed pieces (Claude writes other state into ~/.claude)
 mkdir -p "$HOME/.claude/hooks" "$HOME/.claude/skills"
+ln -sf "$DOTFILES/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 ln -sf "$DOTFILES/.claude/hooks/context-bar.sh" "$HOME/.claude/hooks/context-bar.sh"
 ln -sfn "$DOTFILES/.claude/skills/mark" "$HOME/.claude/skills/mark"
 "$DOTFILES/.claude/skills/mark/scripts/setup.sh" || true
