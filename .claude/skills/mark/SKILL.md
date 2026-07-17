@@ -2,7 +2,7 @@
 name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes feedback to <file>.comments.md. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a `.comments.md` review file (full filename + suffix, e.g. `spec.md.comments.md`) exists next to a markdown doc you are editing.
 author: "Max Shron"
-version: "1.0.0"
+version: "1.1.0"
 version_date: "2026-07-17"
 ---
 
@@ -59,6 +59,9 @@ same way: exact line first, then first block starting with the quote.)
 
 - **After addressing a comment, delete its block.** Comments left in the
   file render as open feedback in the reader's preview.
+- **If no comment blocks remain after your edits, delete the
+  `.comments.md` file itself** — don't leave an empty file behind. (The
+  preview handles a missing file fine; it just shows no comments.)
 - **If the resolution is worth recording** (e.g. you disagreed and left the
   text as-is), instead append ` [resolved]` to the end of its heading and
   add your response to the block body.
