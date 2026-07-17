@@ -43,9 +43,3 @@ Transform tasks into verifiable goals before starting. For multi-step tasks, sta
 Write in the style of Little Red Schoolhouse essays (point-first structure: state the point, then support it).
 
 Save writeups in a `docs/memos/` subdirectory of the given project, unless the project's own CLAUDE.md specifies otherwise.
-
-## Markdown doc feedback
-
-When working on a markdown document, check for a comments file next to it, named by appending `.comments.md` to the full filename — `spec.md` → `spec.md.comments.md`, never `spec.comments.md`. It holds my inline review comments, one block per comment, headed `## <name>:<line> — "<quote>" (<timestamp>)`. Treat each as a change request against the quoted passage.
-
-After addressing a comment, delete its block; if the resolution is worth recording (e.g. you disagreed and left the text as-is, say why), instead append ` [resolved]` to the end of its heading and add your response to the block body. Unaddressed comments must stay untouched — they render as open feedback in my preview. If no comment blocks remain after your edits, delete the `.comments.md` file itself rather than leaving it empty.
