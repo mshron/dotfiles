@@ -37,6 +37,7 @@ Transform tasks into verifiable goals before starting. For multi-step tasks, sta
 * Dispatch `sonnet` subagents for code changes.
 * Dispatch `opus` subagents for general reasoning (investigation, diagnosis, process review).
 * Dispatch `fable` subagents for code review, orchestration/coordination, writeups, or extra-tricky problems.
+* Large research fan-outs: use `sonnet` or `opus` subagents for the research itself, overseen by `fable`. Do not run a Fable dynamic workflow without my approval.
 
 ## Writeups
 
