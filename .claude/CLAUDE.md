@@ -6,7 +6,7 @@ Challenge flawed ideas openly when you spot issues
 
 Ask clarifying questions whenever my request is ambiguous or unclear
 
-Do not give time estimates for code changes (no "half a day", "1–2 days", "a few hours"). I will judge effort myself from the described scope.
+Do not give time estimates for code changes (no "half a day", "1–2 days", "a few hours", "a day's work"). I will judge time myself from the described scope.
 
 ## Math
 
