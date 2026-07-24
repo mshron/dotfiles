@@ -132,7 +132,8 @@
 
   // Shared form for new comments and edits. submit(text) returns the POST's
   // fetch promise; on success the form closes and comments re-render.
-  function buildForm(initialText, submit) {
+  // onDelete (edit forms only) adds a Delete button wired the same way.
+  function buildForm(initialText, submit, onDelete) {
     var form = document.createElement('div');
     form.className = 'viv-comment-form';
 
@@ -161,10 +162,8 @@
     form.appendChild(actions);
     form.appendChild(error);
 
-    function save() {
-      var comment = textarea.value.trim();
-      if (!comment) return;
-      submit(comment)
+    function perform(request) {
+      request
         .then(function (res) {
           if (res.ok) {
             closeOpenForm();
@@ -176,6 +175,23 @@
         .catch(function () {
           error.style.display = 'block';
         });
+    }
+
+    function save() {
+      var comment = textarea.value.trim();
+      if (!comment) return;
+      perform(submit(comment));
+    }
+
+    if (onDelete) {
+      var deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', function () {
+        if (!window.confirm('Delete this comment?')) return;
+        perform(onDelete());
+      });
+      actions.appendChild(deleteBtn);
     }
 
     saveBtn.addEventListener('click', save);
@@ -216,23 +232,29 @@
   }
 
   // Clicking an unresolved note swaps it for a pre-filled form; the server
-  // finds the matching block by its heading fields and rewrites it in place.
+  // finds the matching block by its heading fields and rewrites it in place
+  // (or removes it, for Delete).
   function openEditForm(note) {
     var comment = note._vivComment;
     closeOpenForm();
-    var form = buildForm(comment.comment, function (text) {
-      return fetch(commentsBase() + '/comment/update', {
+    var identity = {
+      file: window.VIV_PATH,
+      line: comment.line,
+      quote: comment.quote,
+      timestamp: comment.timestamp,
+      oldComment: comment.comment,
+    };
+    function post(url, payload) {
+      return fetch(commentsBase() + url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file: window.VIV_PATH,
-          line: comment.line,
-          quote: comment.quote,
-          timestamp: comment.timestamp,
-          oldComment: comment.comment,
-          comment: text,
-        }),
+        body: JSON.stringify(payload),
       });
+    }
+    var form = buildForm(comment.comment, function (text) {
+      return post('/comment/update', Object.assign({ comment: text }, identity));
+    }, function () {
+      return post('/comment/delete', identity);
     });
     note.hidden = true;
     note.insertAdjacentElement('afterend', form);

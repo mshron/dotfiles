@@ -2,8 +2,8 @@
 name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
 author: "Max Shron"
-version: "1.2.0"
-version_date: "2026-07-17"
+version: "1.3.0"
+version_date: "2026-07-21"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
 
@@ -93,7 +93,7 @@ same way: exact line first, then first block starting with the quote.)
 
 The comment sidebar in the preview updates live as you edit the file, so
 the reader sees resolutions as they happen. The reader can also click an
-open comment in the preview to edit its text in place.
+open comment in the preview to edit its text in place or delete it.
 
 ## How it works
 
@@ -106,8 +106,9 @@ open comment in the preview to edit its text in place.
 - `comments-server.mjs` (port `$VIV_COMMENTS_PORT`, default 31623) is a
   zero-dependency node sidecar that accepts comment POSTs — new comments
   are appended to `<file>.comments.md`, edits rewrite the matching block in
-  place. It polls Vivify's `/health` and exits when the preview server is
-  gone.
+  place, deletes remove it (and remove the file itself when no blocks
+  remain). It polls Vivify's `/health` and exits when the preview server
+  is gone.
 - Vivify's own live-reload watches the file inode, which dies when a file
   is saved by rename (atomic replace — how Claude Code and many editors
   write). `comments.js` covers this: it polls the sidecar's `/mtimes` and

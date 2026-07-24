@@ -78,6 +78,14 @@ function findBlocks(lines) {
   return blocks;
 }
 
+// Matches on the heading fields the client got from GET /comments; the old
+// body disambiguates same-minute duplicates on one block.
+function findTargetBlock(lines, { line, quote, timestamp, oldComment }) {
+  return findBlocks(lines).find((b) =>
+    !b.resolved && b.line === line && b.quote === quote && b.timestamp === (timestamp || null) &&
+    (oldComment == null || lines.slice(b.start + 1, b.end).join('\n').trim() === oldComment));
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'OPTIONS') {
@@ -154,12 +162,8 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // Match on the heading fields the client got from GET /comments; the
-      // old body disambiguates same-minute duplicates on one block.
       const lines = fs.readFileSync(commentsPath, 'utf8').split('\n');
-      const target = findBlocks(lines).find((b) =>
-        !b.resolved && b.line === line && b.quote === quote && b.timestamp === (timestamp || null) &&
-        (oldComment == null || lines.slice(b.start + 1, b.end).join('\n').trim() === oldComment));
+      const target = findTargetBlock(lines, { line, quote, timestamp, oldComment });
       if (!target) {
         send(res, 404, 'comment not found', { 'Content-Type': 'text/plain' });
         return;
@@ -168,6 +172,50 @@ const server = http.createServer(async (req, res) => {
       const head = lines.slice(0, target.start + 1).join('\n');
       const tail = lines.slice(target.end).join('\n');
       fs.writeFileSync(commentsPath, `${head}\n\n${comment.trim()}\n\n${tail}`);
+      send(res, 204, '');
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/comment/delete') {
+      const raw = await readBody(req);
+      let body;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        send(res, 400, 'invalid JSON body', { 'Content-Type': 'text/plain' });
+        return;
+      }
+
+      const { file, line, quote, timestamp, oldComment } = body;
+      if (typeof file !== 'string' || !path.isAbsolute(file)) {
+        send(res, 400, 'file must be an absolute path', { 'Content-Type': 'text/plain' });
+        return;
+      }
+      if (typeof line !== 'number') {
+        send(res, 400, 'line must be a number', { 'Content-Type': 'text/plain' });
+        return;
+      }
+
+      const commentsPath = `${file}.comments.md`;
+      if (!fs.existsSync(commentsPath)) {
+        send(res, 404, 'no comments file', { 'Content-Type': 'text/plain' });
+        return;
+      }
+
+      const lines = fs.readFileSync(commentsPath, 'utf8').split('\n');
+      const target = findTargetBlock(lines, { line, quote, timestamp, oldComment });
+      if (!target) {
+        send(res, 404, 'comment not found', { 'Content-Type': 'text/plain' });
+        return;
+      }
+
+      const remaining = lines.slice(0, target.start).concat(lines.slice(target.end));
+      // Same rule as the agent workflow: no blocks left -> no file.
+      if (findBlocks(remaining).length === 0) {
+        fs.unlinkSync(commentsPath);
+      } else {
+        fs.writeFileSync(commentsPath, remaining.join('\n'));
+      }
       send(res, 204, '');
       return;
     }
