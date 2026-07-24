@@ -105,6 +105,8 @@ export EDITOR='nvim'
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 # markdown preview: `mark` is now a standalone script (~/.local/bin/mark),
 # installed by the mark skill (.claude/skills/mark) — see its setup.sh
+# zsh ships an MH-mail completion for `mark` (_mh); override it with files
+compdef '_files -g "*.(md|markdown)"' mark
 ff() {fzf --preview 'bat --style=numbers --color=always {}' | xargs -n1 nvim}
 
 

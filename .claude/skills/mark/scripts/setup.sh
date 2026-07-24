@@ -45,6 +45,22 @@ case ":$PATH:" in
   *) echo "note: ~/.local/bin is not on your PATH — add it in ~/.zprofile" >&2 ;;
 esac
 
+# zsh ships an MH-mail-system completion for `mark` (_mh), so tab after
+# `mark` completes mail folders instead of files. Override it in ~/.zshrc.
+zshrc="$HOME/.zshrc"
+if [ ! -f "$zshrc" ]; then
+  echo "note: no ~/.zshrc — for tab completion add: compdef '_files -g \"*.(md|markdown)\"' mark" >&2
+elif grep -q "compdef .* mark" "$zshrc"; then
+  echo "ok       mark completion already in $zshrc"
+else
+  cat >> "$zshrc" <<'EOF'
+
+# zsh ships an MH-mail completion for `mark` (_mh); override it with files
+(( $+functions[compdef] )) && compdef '_files -g "*.(md|markdown)"' mark
+EOF
+  echo "installed mark completion in $zshrc (open a new shell to pick it up)"
+fi
+
 resolved=$(command -v mark || true)
 if [ -n "$resolved" ] && [ "$resolved" != "$HOME/.local/bin/mark" ]; then
   echo "note: \`mark\` currently resolves to $resolved — check for an alias or another install shadowing it" >&2

@@ -3,7 +3,7 @@ name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
 author: "Max Shron"
 version: "1.3.0"
-version_date: "2026-07-21"
+version_date: "2026-07-24"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
 
@@ -55,7 +55,9 @@ missing, run setup:
    user before installing anything** (`brew install vivify node`).
 2. Run `scripts/setup.sh` from this skill's directory. It is idempotent:
    copies config files to `~/.config/vivify/` (never overwrites existing
-   files), installs `mark` to `~/.local/bin/`, and warns about PATH or
+   files), installs `mark` to `~/.local/bin/`, adds a zsh tab-completion
+   override to `~/.zshrc` (zsh otherwise binds `mark` to the MH mail
+   system's completion, so tab produces nothing), and warns about PATH or
    shadowing problems (e.g. an old `alias mark='open -a "Marked 2"'`).
 
 macOS only as written (`open`, Homebrew).
