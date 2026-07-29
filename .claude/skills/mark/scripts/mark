@@ -6,8 +6,14 @@
 # Servers auto-start if down. Vivify's idle timeout is set long (24h, see
 # ~/.config/vivify/config.json) so the preview URL survives suspended panes.
 
+no_open=0
+if [[ $1 == --no-open ]]; then
+  no_open=1
+  shift
+fi
+
 if [[ -z $1 || ! -f $1 ]]; then
-  echo "usage: mark <file.md>" >&2
+  echo "usage: mark [--no-open] <file.md>" >&2
   exit 1
 fi
 
@@ -33,7 +39,10 @@ if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${VIV_COMMENTS_PORT:-3
   detach node ~/.config/vivify/comments-server.mjs
 fi
 
-if [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
+if (( no_open )); then
+  # caller opens the URL itself (e.g. an agent with an in-app browser)
+  :
+elif [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
   # cmux: open in the currently focused window, not the agent's launch-time
   # $CMUX_WORKSPACE_ID (which pins the preview to window 1).
   win_args=()

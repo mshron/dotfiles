@@ -2,7 +2,7 @@
 name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
 author: "Max Shron"
-version: "1.3.1"
+version: "1.4.0"
 version_date: "2026-07-29"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -45,6 +45,25 @@ without leaving the conversation:
 ```text
 ! mark docs/memos/proposal.md
 ```
+
+### Agents with a built-in browser (e.g. Codex in the ChatGPT desktop app)
+
+If your harness has an in-app browser (Codex desktop's Browser Use tool),
+keep the preview inside the app instead of letting `mark` pop the system
+browser: run `mark --no-open <file.md>` (it only prints the URL), then
+open that URL with your browser tool. In Codex desktop:
+
+```js
+const iab = (await agent.browsers.list()).find(b => b.type === "iab");
+const browser = await agent.browsers.get(iab.id);
+const tab = await browser.tabs.new();
+await tab.goto(url);               // the URL mark printed
+await tab.markDeliverable();       // keep the tab open after the turn ends
+```
+
+`markDeliverable()` matters: without it the harness's tab cleanup closes
+the preview when the turn finishes. If no in-app browser is available,
+plain `mark <file.md>` opens the default system browser as usual.
 
 ## First-run setup
 
@@ -120,4 +139,4 @@ open comment in the preview to edit its text in place or delete it.
   own sessions, so agent harnesses that kill the command's process group
   on completion (e.g. Codex) don't take the servers down — then opens the
   URL (via cmux's browser when running inside cmux, else the default
-  browser).
+  browser; `--no-open` skips this and just prints the URL).
