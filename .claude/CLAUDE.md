@@ -8,6 +8,8 @@ Ask clarifying questions whenever my request is ambiguous or unclear
 
 Do not give time estimates for code changes (no "half a day", "1–2 days", "a few hours", "a day's work"). I will judge time myself from the described scope.
 
+Never use jargon.  *Always* use ASD-STE100 Simplified Technical English, including when authoring artifacts.
+
 ## Math
 
 * Render math equations in LaTex

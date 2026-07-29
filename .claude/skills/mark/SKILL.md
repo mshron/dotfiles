@@ -2,7 +2,7 @@
 name: mark
 description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify or ask you to address review comments, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.4.1"
+version: "1.4.2"
 version_date: "2026-07-29"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -52,33 +52,17 @@ without leaving the conversation:
 ! mark docs/memos/proposal.md
 ```
 
-### Agents with a built-in browser
+### Choose where the preview opens
 
-If your harness has an in-app browser, keep the preview inside the app
-instead of letting `mark` pop the system browser: run
-`mark --no-open <file.md>` (it only prints the URL), then open that URL
-with your browser tool.
+**Codex — choose from the host app, not from available tools:**
 
-Decide by the tools you actually have, not by which product you are:
-the desktop apps expose a browser tool, the CLIs don't. Running in a
-terminal (Codex CLI, Claude Code CLI) there is no in-app browser — use
-plain `mark <file.md>`, which opens the default system browser.
-
-**Claude Code with the Browser pane (mcp__Claude_Browser tools):**
-
-```
-mcp__Claude_Browser__preview_start({ url: "<the URL mark printed>" })
-```
-
-`preview_start` opens the pane and navigates to the URL in one call — no
-separate `navigate` call needed. The pane stays live-reloading like any
-other `mark` preview.
-
-**Codex: choose by app**
-
-- In the ChatGPT desktop app, use the in-app Browser MCP. Run
-  `mark --no-open <file.md>`, then use the Browser MCP to open the printed
-  URL in the in-app browser and mark the tab as a deliverable:
+- In Codex CLI, run plain `mark <file.md>` immediately. It opens the
+  default system browser. **Do not** run `mark --no-open`, read or invoke
+  the Browser skill, or probe the Browser MCP. Browser tools can be listed
+  in a CLI session even though no in-app browser exists.
+- Only when Codex is running inside the ChatGPT desktop app, run
+  `mark --no-open <file.md>`, then use the in-app Browser MCP to open the
+  printed URL and mark the tab as a deliverable:
 
 ```js
 const browser = await agent.browsers.get("iab");
@@ -88,9 +72,20 @@ await tab.markDeliverable();       // keep the tab open after the turn ends
 ```
 
   `markDeliverable()` matters: without it the harness's tab cleanup closes
-  the preview when the turn finishes.
-- In Codex CLI, do not use the Browser MCP. Run plain `mark <file.md>` and
-  let it open the default system browser.
+  the preview when the turn finishes. If the in-app browser fails in the
+  desktop app, fall back to plain `mark <file.md>`.
+
+**Claude Code with the Browser pane (mcp__Claude_Browser tools):**
+
+Run `mark --no-open <file.md>`, then:
+
+```
+mcp__Claude_Browser__preview_start({ url: "<the URL mark printed>" })
+```
+
+`preview_start` opens the pane and navigates to the URL in one call — no
+separate `navigate` call needed. The pane stays live-reloading like any
+other `mark` preview.
 
 For other agents, if no in-app browser is available, plain
 `mark <file.md>` opens the default system browser as usual.

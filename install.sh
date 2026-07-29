@@ -54,6 +54,11 @@ mkdir -p "$HOME/.claude/hooks" "$HOME/.claude/skills"
 ln -sf "$DOTFILES/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 ln -sf "$DOTFILES/.claude/hooks/context-bar.sh" "$HOME/.claude/hooks/context-bar.sh"
 ln -sfn "$DOTFILES/.claude/skills/mark" "$HOME/.claude/skills/mark"
+
+# Codex — update the adapted instructions while preserving Codex's skill metadata
+mkdir -p "$HOME/.agents/skills/mark"
+cp "$DOTFILES/.claude/skills/mark/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md"
+
 "$DOTFILES/.claude/skills/mark/scripts/setup.sh" || true
 
 # Ghostty (macOS location)
