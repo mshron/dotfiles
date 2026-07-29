@@ -1,5 +1,0 @@
-## SKILL.md:46 — "Treat each block as a change request against the quoted passage." (2026-07-15 11:08) [resolved]
-
-What if the document has changed ? Presumably line numbers won’t be stable, and the quotes will be off. Is there a more robust way to do this?
-
-**Response:** The quote is already the durable anchor — comments.js resolves display anchors by exact line first, then falls back to the first block whose text starts with the quote (comments.js:70-75). But SKILL.md never told *agents* that, so I added a paragraph after this line: locate by quote, use the line number only as a tiebreaker for duplicate quotes, and if the passage was deleted/rewritten beyond recognition, say so instead of guessing. Quotes going stale entirely (passage rewritten) can't be fixed by anchoring — that case is now explicitly "flag it, don't guess."
