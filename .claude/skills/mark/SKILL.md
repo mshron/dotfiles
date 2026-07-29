@@ -2,7 +2,7 @@
 name: mark
 description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify or ask you to address review comments, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.4.0"
+version: "1.4.1"
 version_date: "2026-07-29"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -59,6 +59,11 @@ instead of letting `mark` pop the system browser: run
 `mark --no-open <file.md>` (it only prints the URL), then open that URL
 with your browser tool.
 
+Decide by the tools you actually have, not by which product you are:
+the desktop apps expose a browser tool, the CLIs don't. Running in a
+terminal (Codex CLI, Claude Code CLI) there is no in-app browser — use
+plain `mark <file.md>`, which opens the default system browser.
+
 **Claude Code with the Browser pane (mcp__Claude_Browser tools):**
 
 ```
@@ -69,19 +74,26 @@ mcp__Claude_Browser__preview_start({ url: "<the URL mark printed>" })
 separate `navigate` call needed. The pane stays live-reloading like any
 other `mark` preview.
 
-**Codex in the ChatGPT desktop app (Browser Use tool):**
+**Codex: choose by app**
+
+- In the ChatGPT desktop app, use the in-app Browser MCP. Run
+  `mark --no-open <file.md>`, then use the Browser MCP to open the printed
+  URL in the in-app browser and mark the tab as a deliverable:
 
 ```js
-const iab = (await agent.browsers.list()).find(b => b.type === "iab");
-const browser = await agent.browsers.get(iab.id);
+const browser = await agent.browsers.get("iab");
 const tab = await browser.tabs.new();
 await tab.goto(url);               // the URL mark printed
 await tab.markDeliverable();       // keep the tab open after the turn ends
 ```
 
-`markDeliverable()` matters: without it the harness's tab cleanup closes
-the preview when the turn finishes. If no in-app browser is available,
-plain `mark <file.md>` opens the default system browser as usual.
+  `markDeliverable()` matters: without it the harness's tab cleanup closes
+  the preview when the turn finishes.
+- In Codex CLI, do not use the Browser MCP. Run plain `mark <file.md>` and
+  let it open the default system browser.
+
+For other agents, if no in-app browser is available, plain
+`mark <file.md>` opens the default system browser as usual.
 
 ## First-run setup
 
