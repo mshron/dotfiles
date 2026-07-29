@@ -2,8 +2,8 @@
 name: mark
 description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
 author: "Max Shron"
-version: "1.3.0"
-version_date: "2026-07-24"
+version: "1.3.1"
+version_date: "2026-07-29"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
 
@@ -116,5 +116,8 @@ open comment in the preview to edit its text in place or delete it.
   write). `comments.js` covers this: it polls the sidecar's `/mtimes` and
   reloads the page itself when the doc changed but Vivify didn't redraw;
   a changed (or deleted) comments file just re-renders the notes.
-- `mark` auto-starts both servers if they are down, then opens the URL
-  (via cmux's browser when running inside cmux, else the default browser).
+- `mark` auto-starts both servers if they are down — detached into their
+  own sessions, so agent harnesses that kill the command's process group
+  on completion (e.g. Codex) don't take the servers down — then opens the
+  URL (via cmux's browser when running inside cmux, else the default
+  browser).

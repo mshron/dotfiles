@@ -14,8 +14,15 @@ fi
 port=${VIV_PORT:-31622}
 url="http://localhost:${port}/viewer${1:A}"
 
+# Detach into a new session/process group (setsid via node), not just nohup:
+# agent harnesses (e.g. Codex) kill the command's whole process group when the
+# call returns, which would take the servers down with it.
+detach() {
+  node -e 'const{spawn}=require("child_process");spawn(process.argv[1],process.argv.slice(2),{detached:true,stdio:"ignore"}).unref()' "$@"
+}
+
 if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
-  (nohup vivify-server >/dev/null 2>&1 &)
+  detach vivify-server
   for _ in {1..30}; do
     curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health" && break
     sleep 0.1
@@ -23,7 +30,7 @@ if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
 fi
 
 if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${VIV_COMMENTS_PORT:-31623}/health"; then
-  (nohup node ~/.config/vivify/comments-server.mjs >/dev/null 2>&1 &)
+  detach node ~/.config/vivify/comments-server.mjs
 fi
 
 if [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
