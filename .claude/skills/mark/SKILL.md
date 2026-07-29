@@ -1,6 +1,6 @@
 ---
 name: mark
-description: Live browser preview of markdown files via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use when the user wants to preview or render a markdown file, mentions mark/markb/vivify, asks you to address review comments, or when a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing.
+description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify or ask you to address review comments, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
 version: "1.4.0"
 version_date: "2026-07-29"
@@ -13,6 +13,12 @@ Two halves: a `mark <file.md>` command that opens a live-reloading browser
 preview, and a review loop where the human clicks any paragraph in the
 preview to leave a comment, which lands in `<file>.comments.md` for the
 agent to address.
+
+**This is the default markdown viewer.** When you finish writing or
+editing a markdown doc the user will want to read — a memo, a plan, a
+report — open it with `mark` unprompted. Don't paste the rendered
+content into the terminal, and don't hand the file to macOS `open` or
+another previewer.
 
 ## Quick start
 
