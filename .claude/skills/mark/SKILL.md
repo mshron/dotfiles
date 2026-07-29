@@ -46,12 +46,24 @@ without leaving the conversation:
 ! mark docs/memos/proposal.md
 ```
 
-### Agents with a built-in browser (e.g. Codex in the ChatGPT desktop app)
+### Agents with a built-in browser
 
-If your harness has an in-app browser (Codex desktop's Browser Use tool),
-keep the preview inside the app instead of letting `mark` pop the system
-browser: run `mark --no-open <file.md>` (it only prints the URL), then
-open that URL with your browser tool. In Codex desktop:
+If your harness has an in-app browser, keep the preview inside the app
+instead of letting `mark` pop the system browser: run
+`mark --no-open <file.md>` (it only prints the URL), then open that URL
+with your browser tool.
+
+**Claude Code with the Browser pane (mcp__Claude_Browser tools):**
+
+```
+mcp__Claude_Browser__preview_start({ url: "<the URL mark printed>" })
+```
+
+`preview_start` opens the pane and navigates to the URL in one call — no
+separate `navigate` call needed. The pane stays live-reloading like any
+other `mark` preview.
+
+**Codex in the ChatGPT desktop app (Browser Use tool):**
 
 ```js
 const iab = (await agent.browsers.list()).find(b => b.type === "iab");
