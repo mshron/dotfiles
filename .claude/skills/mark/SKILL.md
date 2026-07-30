@@ -1,9 +1,9 @@
 ---
 name: mark
-description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify or ask you to address review comments, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
+description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify, whenever they ask to review/address/handle comments or feedback, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.4.2"
-version_date: "2026-07-29"
+version: "1.4.3"
+version_date: "2026-07-30"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
 
@@ -56,11 +56,14 @@ without leaving the conversation:
 
 **Codex — choose from the host app, not from available tools:**
 
-- In Codex CLI, run plain `mark <file.md>` immediately. It opens the
-  default system browser. **Do not** run `mark --no-open`, read or invoke
-  the Browser skill, or probe the Browser MCP. Browser tools can be listed
-  in a CLI session even though no in-app browser exists.
-- Only when Codex is running inside the ChatGPT desktop app, run
+- In Codex CLI — no desktop app-context message in the session — run plain
+  `mark <file.md>` immediately. It opens the default system browser.
+  **Do not** run `mark --no-open`, read or invoke the Browser skill, or
+  probe the Browser MCP. Browser tools can be listed in a CLI session even
+  though no in-app browser exists.
+- Only when the session context says you are inside a desktop app — a
+  "Codex desktop context" message ("You are running inside the Codex
+  (desktop) app"), or the ChatGPT desktop app equivalent — run
   `mark --no-open <file.md>`, then use the in-app Browser MCP to open the
   printed URL and mark the tab as a deliverable:
 
@@ -118,6 +121,14 @@ reader's inline review comments, one block per comment, headed:
 ```
 
 Treat each block as a change request against the quoted passage.
+
+**“Review the comments,” “handle the feedback,” and “address my comments”
+are edit requests in this workflow.** Read the comments and source document,
+apply every clear requested change, and resolve its comment block. Do not
+stop after summarizing the comments. Only use read-only behavior when the
+user explicitly asks to summarize, list, or report the comments without
+making edits. If one request is unclear, leave that block open and explain
+the ambiguity after applying the clear requests.
 
 **The quote is the anchor, not the line number.** Comments are written
 against a snapshot of the doc, so line numbers drift as it is edited —
