@@ -81,8 +81,12 @@ fi
 model_info=''
 [ -n "$model" ] && model_info="\033[0;35m${model}\033[0m"
 
-# Left cluster: bar+tokens, path, branch — space-separated.
-left="${color}${bar} ${tokens_k}k\033[0m"
+# Hostname: on macOS `hostname` reflects DHCP/DNS when HostName is unset,
+# so prefer the stable LocalHostName; elsewhere hostname -s is fine.
+host=$(scutil --get LocalHostName 2>/dev/null || hostname -s)
+
+# Left cluster: bar+tokens, hostname, path, branch — space-separated.
+left="${color}${bar} ${tokens_k}k\033[0m \033[0;33m${host}\033[0m"
 [ -n "$path_info" ] && left="${left} ${path_info}"
 [ -n "$git_info" ] && left="${left} ${git_info}"
 
