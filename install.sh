@@ -3,6 +3,16 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "$0")" && pwd)"
 
+# Symlinks point back into this checkout — running via curl-pipe leaves
+# $DOTFILES pointing somewhere with no configs in it. Fail fast instead.
+if [ ! -f "$DOTFILES/.zshrc" ]; then
+  echo "error: $DOTFILES does not look like a dotfiles checkout." >&2
+  echo "Clone the repo and run install.sh from inside it:" >&2
+  echo "  git clone https://github.com/mshron/dotfiles.git ~/code/dotfiles" >&2
+  echo "  ~/code/dotfiles/install.sh" >&2
+  exit 1
+fi
+
 echo "=== Installing dotfiles from $DOTFILES ==="
 
 # --- Oh My Zsh ---
@@ -16,17 +26,18 @@ fi
 # --- Custom plugins ---
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
-declare -A plugins=(
-  [zsh-autosuggestions]="https://github.com/zsh-users/zsh-autosuggestions.git"
-  [fast-syntax-highlighting]="https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
-  [zsh-autocomplete]="https://github.com/marlonrichert/zsh-autocomplete.git"
-)
-
-for name in "${!plugins[@]}"; do
+# "name url" pairs — associative arrays need bash 4+, macOS ships 3.2
+for spec in \
+  "zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions.git" \
+  "fast-syntax-highlighting https://github.com/zdharma-continuum/fast-syntax-highlighting.git" \
+  "zsh-autocomplete https://github.com/marlonrichert/zsh-autocomplete.git"
+do
+  name="${spec%% *}"
+  url="${spec#* }"
   dest="$ZSH_CUSTOM/plugins/$name"
   if [ ! -d "$dest" ]; then
     echo "Installing plugin: $name"
-    git clone --depth 1 "${plugins[$name]}" "$dest"
+    git clone --depth 1 "$url" "$dest"
   else
     echo "Plugin already installed: $name"
   fi
@@ -39,9 +50,11 @@ ln -sf "$DOTFILES/.zshrc" "$HOME/.zshrc"
 ln -sf "$DOTFILES/.zprofile" "$HOME/.zprofile"
 ln -sf "$DOTFILES/.tmux.conf" "$HOME/.tmux.conf"
 mkdir -p "$HOME/.config"
-ln -sf "$DOTFILES/.config/nvim" "$HOME/.config/nvim"
-ln -sf "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
-ln -sf "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
+# -n: don't follow an existing symlink, or re-runs would drop a
+# self-referential link inside the target directory
+ln -sfn "$DOTFILES/.config/nvim" "$HOME/.config/nvim"
+ln -sfn "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
+ln -sfn "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
 # vivify config is owned by the mark skill (single tracked copy)
 ln -sfn "$DOTFILES/.claude/skills/mark/assets" "$HOME/.config/vivify"
 
