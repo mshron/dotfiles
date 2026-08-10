@@ -26,22 +26,23 @@ tmux-only extras: `C-Space Tab` cycles panes with auto-zoom, and `C-Space b` not
 
 ## Install
 
-```bash
-curl -sL https://raw.githubusercontent.com/mshron/dotfiles/main/install.sh | bash
-```
-
-## Manage
-
-Add the alias to your shell:
+Clone the repo, then run the installer from the clone (it symlinks configs
+back into the repo, so it must run from a real checkout — do not curl-pipe it):
 
 ```bash
-alias dot='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
+git clone https://github.com/mshron/dotfiles.git ~/code/dotfiles
+~/code/dotfiles/install.sh
 ```
 
-Then use it like git:
+## Update
+
+Symlinks point into the clone, so edits to tracked files apply immediately.
+To publish changes, commit and push from `~/code/dotfiles`. To pick them up
+on another machine:
 
 ```bash
-dot add ~/.vimrc
-dot commit -m "update vimrc"
-dot push
+cd ~/code/dotfiles && git pull && ./install.sh
 ```
+
+Re-running `install.sh` is safe — it skips anything already in place and
+re-creates any missing links.
