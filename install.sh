@@ -62,6 +62,10 @@ ln -sfn "$DOTFILES/.claude/skills/mark/assets" "$HOME/.config/vivify"
 mkdir -p "$HOME/.config/cmux"
 ln -sf "$DOTFILES/.config/cmux/cmux.json" "$HOME/.config/cmux/cmux.json"
 
+# herdr — same story: it writes sockets, logs and session state into this dir
+mkdir -p "$HOME/.config/herdr"
+ln -sf "$DOTFILES/.config/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+
 # Claude Code — symlink the managed pieces (Claude writes other state into ~/.claude)
 mkdir -p "$HOME/.claude/hooks" "$HOME/.claude/skills"
 ln -sf "$DOTFILES/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"

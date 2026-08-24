@@ -1,0 +1,74 @@
+onboarding = false
+# herdr — keybindings matched to ~/.tmux.conf
+#
+# Only settings that differ from herdr defaults appear here.
+# Run `herdr config check` to validate, `herdr server reload-config` to apply.
+#
+# NOTE: the prefix is ctrl+space, the same chord .config/cmux/cmux.json claims.
+# cmux takes that key before it reaches a pane, so run herdr in Ghostty, not
+# inside cmux, until that overlap is settled.
+
+[keys]
+# tmux: set -g prefix C-Space
+prefix = "ctrl+space"
+
+# --- Splits ---------------------------------------------------------------
+# tmux: bind | split-window -h   → herdr calls a side-by-side split "vertical"
+# herdr's own prefix+v is kept as a fallback in case | fails to parse.
+split_vertical = ['prefix+shift+\', "prefix+v"]
+# tmux: bind - split-window -v   → already herdr's default, listed for symmetry
+split_horizontal = "prefix+minus"
+
+# --- Reload / resize ------------------------------------------------------
+# tmux: bind r source-file ~/.tmux.conf
+# This displaces herdr's default prefix+r (resize_mode), so resize moves to R.
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"
+
+# --- Tabs (tmux windows) --------------------------------------------------
+# tmux: bind , rename-window
+rename_tab = "prefix+comma"
+# tmux: bind & kill-window
+close_tab = ["prefix+ampersand", "prefix+shift+x"]
+
+# --- Workspaces (tmux sessions) -------------------------------------------
+# tmux: bind s choose-tree. This displaces herdr's default prefix+s (settings).
+workspace_picker = ["prefix+s", "prefix+w"]
+settings = "prefix+shift+s"
+# tmux: bind ( / ) switch-client -p/-n. Unset by default in herdr.
+previous_workspace = "prefix+shift+9"
+next_workspace = "prefix+shift+0"
+
+# --- Detach ---------------------------------------------------------------
+# tmux: bind d detach-client
+detach = ["prefix+d", "prefix+q"]
+
+# --- Already identical to .tmux.conf, so not restated above ---------------
+#   new_tab           prefix+c        focus_pane_left/down/up/right  prefix+h/j/k/l
+#   close_pane        prefix+x        zoom                           prefix+z
+#   next/previous_tab prefix+n/p      switch_tab                     prefix+1..9
+#   cycle_pane_next   prefix+tab      new_cwd = "follow"  matches -c "#{pane_current_path}"
+#
+# --- Deliberately NOT mapped ---------------------------------------------
+#   C-h/j/k/l (vim-tmux-navigator): herdr has no vim-split awareness, so
+#     binding these would steal the chord from nvim splits. Left to nvim.
+#   prefix [ (copy-mode): herdr 0.8.0 exposes no bindable copy_mode action.
+#     Use the mouse plus prefix+e (edit_scrollback) instead.
+#   prefix H/J/K/L (repeatable resize): herdr offers only a resize mode, so
+#     resizing is prefix+shift+r, then h/j/k/l. prefix+shift+h/j/k/l stays
+#     herdr's swap-pane.
+#   prefix b (silence monitor): herdr's agent sidebar replaces that hack, so
+#     prefix+b is left on toggle_sidebar.
+
+[ui]
+show_agent_labels_on_pane_borders = true
+
+[ui.toast]
+delivery = "terminal"
+
+[ui.sound]
+enabled = false
+
+[theme]
+name = "catppuccin"
+auto_switch = false
