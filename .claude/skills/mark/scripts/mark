@@ -1,10 +1,16 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # mark — live markdown preview in the browser via Vivify (live reload,
 # KaTeX, syntax highlighting), plus a click-to-comment sidecar that writes
 # reviewer feedback to <file>.comments.md.
 #
 # Servers auto-start if down. Vivify's idle timeout is set long (24h, see
 # ~/.config/vivify/config.json) so the preview URL survives suspended panes.
+#
+# Works on macOS and Linux. Reads ~/.config/vivify/mark.conf for
+# MARK_LOCATION (local, the default, or remote — see setup.sh). In remote
+# mode there's no local display to open a browser on, so mark always just
+# prints the URL, built from this host's Tailscale address instead of
+# localhost.
 
 no_open=0
 if [[ $1 == --no-open ]]; then
@@ -17,8 +23,28 @@ if [[ -z $1 || ! -f $1 ]]; then
   exit 1
 fi
 
+if [[ -z ${MARK_LOCATION:-} && -f "$HOME/.config/vivify/mark.conf" ]]; then
+  . "$HOME/.config/vivify/mark.conf"
+fi
+location=${MARK_LOCATION:-local}
+
 port=${VIV_PORT:-31622}
-url="http://localhost:${port}/viewer${1:A}"
+
+if [[ $location == remote ]]; then
+  host=$(tailscale ip -4 2>/dev/null)
+  if [[ -z $host ]]; then
+    echo "mark: MARK_LOCATION=remote but \`tailscale ip -4\` returned nothing — is tailscaled running and this host joined to a tailnet?" >&2
+    exit 1
+  fi
+  no_open=1
+elif [[ $location != local ]]; then
+  echo "mark: unknown MARK_LOCATION '$location' (expected local or remote)" >&2
+  exit 1
+else
+  host=localhost
+fi
+
+url="http://${host}:${port}/viewer$(realpath "$1")"
 
 # Detach into a new session/process group (setsid via node), not just nohup:
 # agent harnesses (e.g. Codex) kill the command's whole process group when the
@@ -40,7 +66,8 @@ if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${VIV_COMMENTS_PORT:-3
 fi
 
 if (( no_open )); then
-  # caller opens the URL itself (e.g. an agent with an in-app browser)
+  # caller opens the URL itself (e.g. an agent with an in-app browser), or
+  # there's no local display to open one on (remote mode)
   :
 elif [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
   # cmux: open in the currently focused window, not the agent's launch-time
@@ -49,8 +76,10 @@ elif [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
   win=$("$CMUX_BUNDLED_CLI_PATH" current-window 2>/dev/null)
   [[ -n $win ]] && win_args=(--window "$win")
   "$CMUX_BUNDLED_CLI_PATH" browser open "$url" "${win_args[@]}" --focus true >/dev/null
-else
+elif command -v open >/dev/null 2>&1; then
   open "$url"
+elif command -v xdg-open >/dev/null 2>&1; then
+  xdg-open "$url" >/dev/null 2>&1 &
 fi
 
 echo "$url"

@@ -95,19 +95,48 @@ For other agents, if no in-app browser is available, plain
 
 ## First-run setup
 
-If `mark` is not on PATH or `~/.config/vivify/comments-server.mjs` is
-missing, run setup:
+Works on macOS and Linux. If `mark` is not on PATH or
+`~/.config/vivify/comments-server.mjs` is missing, run setup:
 
-1. Dependencies: `vivify-server` and `node`, both via Homebrew. **Ask the
-   user before installing anything** (`brew install vivify node`).
+1. Dependencies: `vivify-server` and `node`. On macOS both come via
+   Homebrew — **ask the user before installing anything**
+   (`brew install vivify node`). On Linux, `setup.sh` downloads Vivify's
+   own release binary itself; only `node` needs installing up front
+   (e.g. `sudo apt-get install -y nodejs`) — ask first, same as macOS.
 2. Run `scripts/setup.sh` from this skill's directory. It is idempotent:
    copies config files to `~/.config/vivify/` (never overwrites existing
-   files), installs `mark` to `~/.local/bin/`, adds a zsh tab-completion
-   override to `~/.zshrc` (zsh otherwise binds `mark` to the MH mail
-   system's completion, so tab produces nothing), and warns about PATH or
-   shadowing problems (e.g. an old `alias mark='open -a "Marked 2"'`).
+   files, including `mark.conf` — see below), installs `mark` to
+   `~/.local/bin/`, adds a zsh tab-completion override to `~/.zshrc` on
+   macOS (zsh otherwise binds `mark` to the MH mail system's completion,
+   so tab produces nothing), and warns about PATH or shadowing problems
+   (e.g. an old `alias mark='open -a "Marked 2"'`).
 
-macOS only as written (`open`, Homebrew).
+## Running on a remote host
+
+`~/.config/vivify/mark.conf` (written by `setup.sh`, then yours to edit)
+controls where `mark` thinks it's running:
+
+```bash
+MARK_LOCATION=local   # default: opens a browser here, preview on localhost
+MARK_LOCATION=remote  # headless host, reached over Tailscale
+```
+
+In `remote` mode, `mark` never tries to open a browser — there's no local
+display — and builds the preview URL from this host's Tailscale address
+(`tailscale ip -4`) instead of `localhost`, so it's ready to paste into a
+browser on your own machine. This requires Tailscale installed and the
+host already joined to your tailnet (https://tailscale.com/download) —
+set that up yourself; it's independent of `mark` and not part of
+`setup.sh`. `mark` refuses to run in `remote` mode if `tailscale ip -4`
+returns nothing.
+
+Both of `mark`'s servers (`vivify-server` and the comments sidecar) bind
+every network interface on the host, not just Tailscale's, and neither
+checks who's calling — the comments sidecar in particular accepts
+unauthenticated writes. If the host also has a public IP, firewall ports
+`$VIV_PORT` (default 31622) and `$VIV_COMMENTS_PORT` (default 31623) down
+to the Tailscale interface and loopback only, or Tailscale won't actually
+be your access control.
 
 ## Review workflow: <file>.comments.md
 
