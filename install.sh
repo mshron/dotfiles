@@ -73,16 +73,16 @@ ln -sf "$DOTFILES/.claude/hooks/context-bar.sh" "$HOME/.claude/hooks/context-bar
 ln -sfn "$DOTFILES/.claude/skills/mark" "$HOME/.claude/skills/mark"
 
 # settings.json also holds machine-specific state (installed plugins,
-# permission grants) so merge in just the statusLine key instead of
-# symlinking the whole file.
+# permission grants) so merge in just the statusLine and permissions
+# keys instead of symlinking the whole file.
 if ! command -v jq >/dev/null 2>&1; then
-  echo "error: jq is required to configure the Claude Code status line." >&2
+  echo "error: jq is required to configure Claude Code settings." >&2
   echo "  brew install jq" >&2
   exit 1
 fi
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 [ -f "$CLAUDE_SETTINGS" ] || echo '{}' > "$CLAUDE_SETTINGS"
-jq '.statusLine = {"type": "command", "command": "~/.claude/hooks/context-bar.sh"}' \
+jq '.statusLine = {"type": "command", "command": "~/.claude/hooks/context-bar.sh"} | .permissions.defaultMode = "auto"' \
   "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
 
 # Codex — update the adapted instructions while preserving Codex's skill metadata
