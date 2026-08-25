@@ -52,3 +52,7 @@ Save writeups in a `docs/memos/` subdirectory of the given project, unless the p
 
 Structure all slide decks or presentations in pyramid-principle style, with an executive summary conclusions up front and subsequent sections that provide evidence and detail.
 
+## Tribe working system
+
+Use Agent MCP for connected internal context and Tribe Bazaar for shared skills, profiles, and starter setups. Inspect before changing files, preserve unrelated work, keep local paths and secrets private, and ask before external messages or destructive changes. Prefer Official Bazaar items for the baseline and explain when using Promoted or Sandbox material.
+
