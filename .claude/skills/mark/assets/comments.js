@@ -34,6 +34,9 @@
       '.viv-commented {' +
       '  border-left: 3px solid var(--text-link); padding-left: 8px;' +
       '}' +
+      '.viv-commented > td, .viv-commented > th {' +
+      '  border-left: 3px solid var(--text-link);' +
+      '}' +
       '.viv-comment-note {' +
       '  margin: 2px 0 4px 1.5em; font-style: italic; font-size: 0.9em;' +
       '  color: var(--text-secondary); white-space: pre-wrap;' +
@@ -47,10 +50,73 @@
 
   function closeOpenForm() {
     var open = document.querySelector('.viv-comment-form');
-    if (open) open.remove();
+    if (open) {
+      // A brand-new comment form on a table row lives alone in a wrapper
+      // <tr>, inserted by attachAfter; drop the whole row rather than leave
+      // an empty one behind. An edit form shares its row with the note it
+      // edits, which stays behind, so the row survives in that case.
+      var row = open.closest('tr.viv-comment-row');
+      open.remove();
+      if (row && !row.querySelector('.viv-comment-note')) row.remove();
+    }
     // A note hidden behind an edit form comes back when the form goes away.
     var hidden = document.querySelectorAll('.viv-comment-note[hidden]');
     for (var i = 0; i < hidden.length; i++) hidden[i].hidden = false;
+  }
+
+  // Vivify source-maps an entire markdown table to a single element, so a
+  // click anywhere inside lands on the same block. GFM tables have exactly
+  // one source line per header/body row (the delimiter row between them
+  // takes one more), so row-level lines are recoverable by offsetting from
+  // the table's own line — this tags each <tr> with its own data-source-line
+  // so comments anchor to (and render beneath) the row that was clicked.
+  function tagTableRows() {
+    var tables = document.querySelectorAll('table.source-line[data-source-line]');
+    for (var t = 0; t < tables.length; t++) {
+      var table = tables[t];
+      var tableLine = Number(table.dataset.sourceLine);
+      table.classList.remove('source-line');
+      table.removeAttribute('data-source-line');
+
+      var headerRow = table.querySelector('thead tr');
+      if (headerRow) {
+        headerRow.classList.add('source-line');
+        headerRow.dataset.sourceLine = tableLine;
+      }
+
+      var bodyRows = table.querySelectorAll('tbody tr');
+      for (var i = 0; i < bodyRows.length; i++) {
+        bodyRows[i].classList.add('source-line');
+        bodyRows[i].dataset.sourceLine = tableLine + 2 + i;
+      }
+    }
+  }
+
+  // Column count for a table row, so a note/form spanning the row's full
+  // width lines up — our own wrapper rows (built below) hold one <td>
+  // already carrying that span, so it's read back off that instead.
+  function rowColspan(rowEl) {
+    if (rowEl.classList.contains('viv-comment-row')) return rowEl.cells[0].colSpan;
+    return rowEl.cells ? rowEl.cells.length : 1;
+  }
+
+  // Inserts contentEl right after afterEl. A table row can't take a <div>
+  // sibling, so when afterEl is a <tr> (the clicked row, or a previously
+  // inserted comment row being chained onto), contentEl is wrapped in a
+  // full-width <tr><td> first.
+  function attachAfter(afterEl, contentEl) {
+    if (afterEl.tagName === 'TR') {
+      var tr = document.createElement('tr');
+      tr.className = 'viv-comment-row';
+      var td = document.createElement('td');
+      td.colSpan = rowColspan(afterEl);
+      td.appendChild(contentEl);
+      tr.appendChild(td);
+      afterEl.insertAdjacentElement('afterend', tr);
+      return tr;
+    }
+    afterEl.insertAdjacentElement('afterend', contentEl);
+    return contentEl;
   }
 
   function commentsBase() {
@@ -88,6 +154,11 @@
   // to call repeatedly (e.g. after save, after live-reload): clears prior
   // notes first so it never double-renders.
   function renderComments() {
+    // Runs unconditionally (not gated on the fetch below succeeding) since
+    // click-to-comment on a table depends on rows being tagged even when
+    // there are no saved comments yet.
+    tagTableRows();
+
     fetch(commentsBase() + '/comments?file=' + encodeURIComponent(window.VIV_PATH))
       .then(function (res) {
         return res.ok ? res.json() : null;
@@ -95,8 +166,15 @@
       .then(function (comments) {
         if (!comments) return;
 
+        // A table-row note lives inside a wrapper <tr class="viv-comment-row">
+        // (see attachAfter) — drop the whole row, not just the note div,
+        // or re-rendering leaves an empty row behind.
         var existing = document.querySelectorAll('.viv-comment-note');
-        for (var i = 0; i < existing.length; i++) existing[i].remove();
+        for (var i = 0; i < existing.length; i++) {
+          var row = existing[i].closest('tr.viv-comment-row');
+          if (row) row.remove();
+          else existing[i].remove();
+        }
 
         var lastForBlock = [];
         function lastInsertedAfter(block) {
@@ -122,8 +200,8 @@
 
           var note = buildNote(comment);
           var after = lastInsertedAfter(block) || block;
-          after.insertAdjacentElement('afterend', note);
-          setLastInsertedAfter(block, note);
+          var inserted = attachAfter(after, note);
+          setLastInsertedAfter(block, inserted);
           block.classList.add('viv-commented');
         }
       })
@@ -227,7 +305,7 @@
         }),
       });
     });
-    block.insertAdjacentElement('afterend', form);
+    attachAfter(block, form);
     form.querySelector('textarea').focus();
   }
 
@@ -290,8 +368,13 @@
   }
 
   function isOwnNode(node) {
+    // A table-row note/form is added/removed as a whole <tr class=
+    // "viv-comment-row"> (see attachAfter) — the observer only sees that
+    // wrapper, not the note/form div nested inside it, so it needs its own
+    // check or every table comment would retrigger a render loop.
     return node.nodeType === 1 && node.classList &&
-      (node.classList.contains('viv-comment-note') || node.classList.contains('viv-comment-form'));
+      (node.classList.contains('viv-comment-note') || node.classList.contains('viv-comment-form') ||
+        node.classList.contains('viv-comment-row'));
   }
 
   var lastDocMutation = 0;
