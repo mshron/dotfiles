@@ -26,7 +26,7 @@ chmod +x "$tmp/bin/curl" "$tmp/bin/cmux"
 export MARK_CMUX_LOG="$tmp/cmux.log"
 export CMUX_BUNDLED_CLI_PATH="$tmp/bin/cmux"
 export CMUX_WORKSPACE_ID='workspace:caller'
-PATH="$tmp/bin:$PATH" MARK_LOCATION=local "$root/scripts/mark" "$tmp/preview.md" >/dev/null
+PATH="$tmp/bin:$PATH" MARK_LOCATION=local VIV_PORT=31622 "$root/scripts/mark" "$tmp/preview.md" >/dev/null
 
 expected="browser open http://localhost:31622/viewer$(realpath "$tmp/preview.md") --workspace workspace:caller --focus false"
 actual=$(cat "$MARK_CMUX_LOG")
