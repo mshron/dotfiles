@@ -2,8 +2,8 @@
 name: mark
 description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify, whenever they ask to review/address/handle comments or feedback, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.4.3"
-version_date: "2026-07-30"
+version: "1.4.4"
+version_date: "2026-08-26"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
 
@@ -200,8 +200,7 @@ open comment in the preview to edit its text in place or delete it.
   write). `comments.js` covers this: it polls the sidecar's `/mtimes` and
   reloads the page itself when the doc changed but Vivify didn't redraw;
   a changed (or deleted) comments file just re-renders the notes.
-- `mark` auto-starts both servers if they are down — detached into their
-  own sessions, so agent harnesses that kill the command's process group
-  on completion (e.g. Codex) don't take the servers down — then opens the
-  URL (via cmux's browser when running inside cmux, else the default
-  browser; `--no-open` skips this and just prints the URL).
+- `mark` auto-starts both servers if they are down. It detaches them so
+  agent harnesses can end the caller process group without ending the servers.
+  Inside cmux, it opens the URL in the caller workspace without changing focus.
+  Outside cmux, it opens the default browser. `--no-open` only prints the URL.

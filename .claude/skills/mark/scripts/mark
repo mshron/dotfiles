@@ -70,12 +70,10 @@ if (( no_open )); then
   # there's no local display to open one on (remote mode)
   :
 elif [[ -x $CMUX_BUNDLED_CLI_PATH ]]; then
-  # cmux: open in the currently focused window, not the agent's launch-time
-  # $CMUX_WORKSPACE_ID (which pins the preview to window 1).
-  win_args=()
-  win=$("$CMUX_BUNDLED_CLI_PATH" current-window 2>/dev/null)
-  [[ -n $win ]] && win_args=(--window "$win")
-  "$CMUX_BUNDLED_CLI_PATH" browser open "$url" "${win_args[@]}" --focus true >/dev/null
+  # Keep the preview in the workspace that launched mark without changing focus.
+  workspace_args=()
+  [[ -n ${CMUX_WORKSPACE_ID:-} ]] && workspace_args=(--workspace "$CMUX_WORKSPACE_ID")
+  "$CMUX_BUNDLED_CLI_PATH" browser open "$url" "${workspace_args[@]}" --focus false >/dev/null
 elif command -v open >/dev/null 2>&1; then
   open "$url"
 elif command -v xdg-open >/dev/null 2>&1; then
