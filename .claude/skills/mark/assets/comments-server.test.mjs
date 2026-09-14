@@ -106,7 +106,7 @@ test('a wrong token of the right length gets 401', async () => {
 });
 
 test('refuses to start on a wildcard address', async () => {
-  for (const bind of ['0.0.0.0', '::', '']) {
+  for (const bind of ['0.0.0.0', '::', '[::]', '']) {
     await assert.rejects(startServer({ MARK_BIND: bind }), (e) => e.code === 1 && /refusing to listen/.test(e.stderr));
   }
 });

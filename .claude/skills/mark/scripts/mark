@@ -35,6 +35,12 @@ fi
 location=${env_location:-${MARK_LOCATION:-local}}
 remote_access=${env_access:-${MARK_REMOTE_ACCESS:-ssh}}
 
+# A mark.conf written by 1.5 has no MARK_REMOTE_ACCESS. Say which default
+# applies so a former Tailscale host sees why the URL now says localhost.
+if [[ $location == remote && -z $env_access && -z ${MARK_REMOTE_ACCESS:-} ]]; then
+  echo "mark: mark.conf has no MARK_REMOTE_ACCESS; using ssh (add MARK_REMOTE_ACCESS=tailscale to keep Tailscale)" >&2
+fi
+
 port=${VIV_PORT:-31622}
 cport=${VIV_COMMENTS_PORT:-31623}
 token_file="$HOME/.local/state/mark/token"
@@ -101,9 +107,11 @@ fi
 
 # An older sidecar (or none) answers here after an upgrade or a port clash.
 # It would not know /register or the token, so stop instead of guessing.
-if ! curl -sf --max-time 1 "$sidecar/health" | grep -q '"version":"1.6.0"'; then
-  echo "mark: the comments sidecar on ${bind}:${cport} is missing or is an older version. Stop it and run mark again:" >&2
-  echo "  pkill -f comments-server.mjs" >&2
+if ! curl -sf --max-time 1 "$sidecar/health" | grep -qF '"version":"1.6.0"'; then
+  echo "mark: the comments sidecar on ${bind}:${cport} is missing or is older than mark 1.6.0." >&2
+  echo "Stop both servers, then run mark again:" >&2
+  echo "  pkill -f vivify-server; pkill -f comments-server.mjs" >&2
+  echo "If ~/.config/vivify holds copies of mark's files (not links), copy the new comments-server.mjs and comments.js there first." >&2
   exit 1
 fi
 

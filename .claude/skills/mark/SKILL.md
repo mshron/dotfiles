@@ -128,13 +128,19 @@ reaches it:
 MARK_LOCATION=local          # default: opens a browser here, preview on localhost
 MARK_LOCATION=remote         # headless host: never opens a browser, prints the URL
 MARK_REMOTE_ACCESS=ssh       # default for remote: reach it over ssh port forwarding
-MARK_REMOTE_ACCESS=tailscale # reach it over your tailnet; the phone path
+MARK_REMOTE_ACCESS=tailscale # reach it over your tailnet; use this from a phone
 ```
 
-A `mark.conf` written by mark 1.5 has `MARK_LOCATION` but no
-`MARK_REMOTE_ACCESS`, so after upgrading, `mark` treats that host as
-`ssh`. Every 1.5 remote host used Tailscale. If you want to keep using Tailscale, add the line `MARK_REMOTE_ACCESS=tailscale` to
-`~/.config/vivify/mark.conf`.
+**Upgrading from mark 1.5.** Stop both servers first, then run `mark`
+again: `pkill -f vivify-server; pkill -f comments-server.mjs`. Vivify
+loads `comments.js` only at start, so an old Vivify keeps the old page
+code and every comment fails until it restarts. If `~/.config/vivify`
+holds copies of mark's files rather than links to this skill's
+`assets/`, delete `comments-server.mjs` and `comments.js` there and run
+`setup.sh` again (it copies only missing files), or copy the two new
+files by hand. A 1.5 `mark.conf` has no `MARK_REMOTE_ACCESS`, so a
+remote host now uses `ssh`. If you want to keep using Tailscale, add
+the line `MARK_REMOTE_ACCESS=tailscale` to `~/.config/vivify/mark.conf`.
 
 **Over ssh (default).** The comments sidecar listens on `127.0.0.1` only.
 `mark` prints a `localhost` URL and a reminder to forward the two ports.
