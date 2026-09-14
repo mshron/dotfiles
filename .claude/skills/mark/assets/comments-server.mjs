@@ -57,6 +57,23 @@ function hasValidToken(req) {
   return given.length === TOKEN_BUF.length && crypto.timingSafeEqual(given, TOKEN_BUF);
 }
 
+// Documents `mark` has opened in this process's lifetime, as real paths.
+// Empty after a restart until `mark` runs again.
+const REGISTERED = new Set();
+
+// The real path of `file` if mark registered it, else null. Callers pick
+// the document; this decides whether the sidecar may touch it.
+function registeredPath(file) {
+  if (typeof file !== 'string' || !path.isAbsolute(file)) return null;
+  let real;
+  try {
+    real = fs.realpathSync(file);
+  } catch {
+    return null;
+  }
+  return REGISTERED.has(real) ? real : null;
+}
+
 // The page comes from Vivify on another port, so replies carry CORS headers
 // for exactly that origin. People type `localhost`, which browsers treat as
 // a different origin from 127.0.0.1, so loopback allows both spellings.
@@ -179,6 +196,29 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
       return;
     }
 
+    if (req.method === 'POST' && req.url === '/register') {
+      const raw = await readBody(req);
+      let body;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        send(res, 400, 'invalid JSON body', TEXT);
+        return;
+      }
+      let real;
+      try {
+        if (typeof body.file !== 'string' || !path.isAbsolute(body.file)) throw new Error('not absolute');
+        real = fs.realpathSync(body.file);
+        if (!fs.statSync(real).isFile()) throw new Error('not a file');
+      } catch {
+        send(res, 400, 'file must be an absolute path to an existing regular file', TEXT);
+        return;
+      }
+      REGISTERED.add(real);
+      send(res, 204, '');
+      return;
+    }
+
     if (req.method === 'POST' && req.url === '/comment') {
       const raw = await readBody(req);
       let body;
@@ -190,8 +230,9 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
       }
 
       const { file, line, quote, comment } = body;
-      if (typeof file !== 'string' || !path.isAbsolute(file) || !fs.existsSync(file)) {
-        send(res, 400, 'file must be an absolute path that exists', TEXT);
+      const real = registeredPath(file);
+      if (!real) {
+        send(res, 403, 'file not registered', TEXT);
         return;
       }
       if (typeof comment !== 'string' || comment.trim() === '') {
@@ -207,8 +248,8 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
       // A newline (or any run of whitespace) in the quote would split the
       // heading across lines and make the block unparseable.
       const cleanQuote = String(quote ?? '').replace(/\s+/g, ' ');
-      const block = `## ${path.basename(file)}:${line} — "${cleanQuote}" (${stamp})\n\n${comment.trim()}\n\n`;
-      fs.appendFileSync(`${file}.comments.md`, block);
+      const block = `## ${path.basename(real)}:${line} — "${cleanQuote}" (${stamp})\n\n${comment.trim()}\n\n`;
+      fs.appendFileSync(`${real}.comments.md`, block);
       send(res, 204, '');
       return;
     }
@@ -224,8 +265,9 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
       }
 
       const { file, line, quote, timestamp, oldComment, comment } = body;
-      if (typeof file !== 'string' || !path.isAbsolute(file)) {
-        send(res, 400, 'file must be an absolute path', TEXT);
+      const real = registeredPath(file);
+      if (!real) {
+        send(res, 403, 'file not registered', TEXT);
         return;
       }
       if (typeof comment !== 'string' || comment.trim() === '') {
@@ -237,7 +279,7 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
         return;
       }
 
-      const commentsPath = `${file}.comments.md`;
+      const commentsPath = `${real}.comments.md`;
       if (!fs.existsSync(commentsPath)) {
         send(res, 404, 'no comments file', TEXT);
         return;
@@ -268,8 +310,9 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
       }
 
       const { file, line, quote, timestamp, oldComment } = body;
-      if (typeof file !== 'string' || !path.isAbsolute(file)) {
-        send(res, 400, 'file must be an absolute path', TEXT);
+      const real = registeredPath(file);
+      if (!real) {
+        send(res, 403, 'file not registered', TEXT);
         return;
       }
       if (typeof line !== 'number') {
@@ -277,7 +320,7 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
         return;
       }
 
-      const commentsPath = `${file}.comments.md`;
+      const commentsPath = `${real}.comments.md`;
       if (!fs.existsSync(commentsPath)) {
         send(res, 404, 'no comments file', TEXT);
         return;
@@ -306,23 +349,25 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
     // and forces a reload when vivify misses a change.
     if (req.method === 'GET' && req.url.split('?')[0] === '/mtimes') {
       const file = new URL(req.url, 'http://localhost').searchParams.get('file');
-      if (typeof file !== 'string' || !path.isAbsolute(file)) {
-        send(res, 400, 'file must be an absolute path', TEXT);
+      const real = registeredPath(file);
+      if (!real) {
+        send(res, 403, 'file not registered', TEXT);
         return;
       }
       const mtime = (p) => (fs.existsSync(p) ? fs.statSync(p).mtimeMs : null);
-      send(res, 200, JSON.stringify({ doc: mtime(file), comments: mtime(`${file}.comments.md`) }), JSON_TYPE);
+      send(res, 200, JSON.stringify({ doc: mtime(real), comments: mtime(`${real}.comments.md`) }), JSON_TYPE);
       return;
     }
 
     if (req.method === 'GET' && req.url.split('?')[0] === '/comments') {
       const file = new URL(req.url, 'http://localhost').searchParams.get('file');
-      if (typeof file !== 'string' || !path.isAbsolute(file)) {
-        send(res, 400, 'file must be an absolute path', TEXT);
+      const real = registeredPath(file);
+      if (!real) {
+        send(res, 403, 'file not registered', TEXT);
         return;
       }
 
-      const commentsPath = `${file}.comments.md`;
+      const commentsPath = `${real}.comments.md`;
       if (!fs.existsSync(commentsPath)) {
         send(res, 200, '[]', JSON_TYPE);
         return;

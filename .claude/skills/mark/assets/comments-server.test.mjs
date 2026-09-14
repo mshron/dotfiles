@@ -156,3 +156,110 @@ test('a 70 KiB body gets 413', async () => {
     assert.equal(await res.text(), 'body too large');
   } finally { stop(s); }
 });
+
+function tmpDoc(s, name = 'doc.md') {
+  const doc = path.join(s.stateDir, name);
+  fs.writeFileSync(doc, '# hi\n\nsome text\n');
+  return doc;
+}
+
+async function register(s, file) {
+  return fetch(`${s.base}/register`, { method: 'POST', headers: auth(s), body: JSON.stringify({ file }) });
+}
+
+async function postComment(s, file, comment = 'looks good') {
+  return fetch(`${s.base}/comment`, {
+    method: 'POST',
+    headers: auth(s),
+    body: JSON.stringify({ file, line: 3, quote: 'some text', comment }),
+  });
+}
+
+test('register then comment writes the block beside the document', async () => {
+  const s = await startServer();
+  const doc = tmpDoc(s);
+  try {
+    assert.equal((await register(s, doc)).status, 204);
+    assert.equal((await postComment(s, doc)).status, 204);
+    const written = fs.readFileSync(`${doc}.comments.md`, 'utf8');
+    assert.match(written, /^## doc\.md:3 — "some text" \(\d{4}-\d{2}-\d{2} \d{2}:\d{2}\)\n\nlooks good\n\n$/);
+  } finally { stop(s); }
+});
+
+test('comment on an unregistered path gets 403 and writes nothing', async () => {
+  const s = await startServer();
+  const doc = tmpDoc(s);
+  try {
+    const res = await postComment(s, doc);
+    assert.equal(res.status, 403);
+    assert.equal(await res.text(), 'file not registered');
+    assert.equal(fs.existsSync(`${doc}.comments.md`), false);
+  } finally { stop(s); }
+});
+
+test('register rejects missing files, directories, and relative paths', async () => {
+  const s = await startServer();
+  try {
+    for (const file of [path.join(s.stateDir, 'nope.md'), s.stateDir, 'relative.md', 42]) {
+      const res = await register(s, file);
+      assert.equal(res.status, 400, `for ${String(file)}`);
+    }
+  } finally { stop(s); }
+});
+
+test('registering a symlink registers its real target', async () => {
+  const s = await startServer();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'mark-outside-'));
+  const real = path.join(outside, 'real.md');
+  fs.writeFileSync(real, 'real\n');
+  const sibling = path.join(outside, 'sibling.md');
+  fs.writeFileSync(sibling, 'sibling\n');
+  const link = path.join(s.stateDir, 'link.md');
+  fs.symlinkSync(real, link);
+  try {
+    assert.equal((await register(s, link)).status, 204);
+    // Both spellings reach the same registered document...
+    assert.equal((await postComment(s, link)).status, 204);
+    assert.equal((await postComment(s, real)).status, 204);
+    // ...and the comments file sits beside the real file, not the link.
+    assert.equal(fs.existsSync(`${real}.comments.md`), true);
+    assert.equal(fs.existsSync(`${link}.comments.md`), false);
+    // A sibling in the same directory is still off limits.
+    assert.equal((await postComment(s, sibling)).status, 403);
+  } finally {
+    stop(s);
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
+});
+
+test('mtimes and comments routes also require registration', async () => {
+  const s = await startServer();
+  const doc = tmpDoc(s);
+  try {
+    const q = `?file=${encodeURIComponent(doc)}`;
+    assert.equal((await fetch(`${s.base}/mtimes${q}`, { headers: auth(s) })).status, 403);
+    assert.equal((await fetch(`${s.base}/comments${q}`, { headers: auth(s) })).status, 403);
+    await register(s, doc);
+    const m = await (await fetch(`${s.base}/mtimes${q}`, { headers: auth(s) })).json();
+    assert.equal(typeof m.doc, 'number');
+    assert.equal(m.comments, null);
+    assert.deepEqual(await (await fetch(`${s.base}/comments${q}`, { headers: auth(s) })).json(), []);
+  } finally { stop(s); }
+});
+
+test('update and delete work through the allowlist and delete removes an empty file', async () => {
+  const s = await startServer();
+  const doc = tmpDoc(s);
+  try {
+    await register(s, doc);
+    await postComment(s, doc, 'first');
+    const [c] = await (await fetch(`${s.base}/comments?file=${encodeURIComponent(doc)}`, { headers: auth(s) })).json();
+    const identity = { file: doc, line: c.line, quote: c.quote, timestamp: c.timestamp, oldComment: c.comment };
+    let res = await fetch(`${s.base}/comment/update`, { method: 'POST', headers: auth(s), body: JSON.stringify({ ...identity, comment: 'second' }) });
+    assert.equal(res.status, 204);
+    assert.match(fs.readFileSync(`${doc}.comments.md`, 'utf8'), /\n\nsecond\n\n/);
+    res = await fetch(`${s.base}/comment/delete`, { method: 'POST', headers: auth(s), body: JSON.stringify({ ...identity, oldComment: 'second' }) });
+    assert.equal(res.status, 204);
+    assert.equal(fs.existsSync(`${doc}.comments.md`), false);
+  } finally { stop(s); }
+});
