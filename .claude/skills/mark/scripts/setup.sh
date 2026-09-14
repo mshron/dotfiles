@@ -2,12 +2,20 @@
 # Idempotent setup for the `mark` markdown preview + review workflow.
 # Copies Vivify config/sidecar files to ~/.config/vivify (never overwrites
 # existing files), installs the `mark` command to ~/.local/bin, and writes
-# mark.conf if it is missing: it asks whether this host is local or remote
-# (see mark.conf's own comments and the "remote host" section of SKILL.md
-# for the remote/Tailscale case). Set MARK_LOCATION=local|remote in the
+# mark.conf if it is missing. It asks whether this host is local or remote,
+# and for a remote host, whether a browser reaches it over ssh port
+# forwarding or over Tailscale (see SKILL.md "Running on a remote host").
+# Set MARK_LOCATION=local|remote and MARK_REMOTE_ACCESS=ssh|tailscale in the
 # environment to answer without a prompt; a non-interactive run with no
-# answer defaults to local.
+# answer defaults to local (and ssh).
+#
+# On Linux this script downloads one pinned Vivify release and checks its
+# SHA-256 before installing. To upgrade Vivify, change the two constants
+# below in a reviewed commit.
 set -euo pipefail
+
+VIVIFY_VERSION=0.14.0
+VIVIFY_LINUX_SHA256=f88696eec6eb9f10a0ca7ac4a1803d5617e31b8b65b831f992108f983ed8b1b2
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OS="$(uname)"
@@ -37,18 +45,25 @@ case "$OS" in
       command -v tar >/dev/null || { echo "Missing dependency: tar" >&2; exit 1; }
       tmp="$(mktemp -d)"
       trap 'rm -rf "$tmp"' EXIT
-      dl_url="$(curl -sf https://api.github.com/repos/jannis-baum/vivify/releases/latest \
-        | grep -o '"browser_download_url": *"[^"]*vivify-linux\.tar\.gz"' | cut -d'"' -f4)"
-      if [ -z "$dl_url" ]; then
-        echo "Could not find a Linux release of vivify — see https://github.com/jannis-baum/Vivify/releases" >&2
+      command -v sha256sum >/dev/null || { echo "Missing dependency: sha256sum (coreutils)" >&2; exit 1; }
+      dl_url="https://github.com/jannis-baum/Vivify/releases/download/v${VIVIFY_VERSION}/vivify-linux.tar.gz"
+      if ! curl -sfL -o "$tmp/vivify-linux.tar.gz" "$dl_url"; then
+        echo "Could not download $dl_url — see https://github.com/jannis-baum/Vivify/releases" >&2
         exit 1
       fi
-      curl -sfL -o "$tmp/vivify-linux.tar.gz" "$dl_url"
+      got="$(sha256sum "$tmp/vivify-linux.tar.gz" | cut -d' ' -f1)"
+      if [ "$got" != "$VIVIFY_LINUX_SHA256" ]; then
+        echo "vivify-linux.tar.gz from $dl_url does not match the pinned SHA-256." >&2
+        echo "  expected: $VIVIFY_LINUX_SHA256" >&2
+        echo "  got:      $got" >&2
+        echo "Not installing. If Vivify published a new build of v${VIVIFY_VERSION}, update the constant in a reviewed change." >&2
+        exit 1
+      fi
       tar -xzf "$tmp/vivify-linux.tar.gz" -C "$tmp"
       mkdir -p "$HOME/.local/bin"
       cp "$tmp/vivify-linux/viv" "$tmp/vivify-linux/vivify-server" "$HOME/.local/bin/"
       chmod +x "$HOME/.local/bin/viv" "$HOME/.local/bin/vivify-server"
-      echo "installed $HOME/.local/bin/vivify-server (and viv) from $dl_url"
+      echo "installed $HOME/.local/bin/vivify-server (and viv) v${VIVIFY_VERSION}, SHA-256 verified"
     fi
     ;;
   *)
@@ -79,7 +94,7 @@ if [ ! -e "$conf" ]; then
     if [ -t 0 ]; then
       echo "Where does mark run on this host?"
       echo "  local  - this machine has a display; open a browser here (default)"
-      echo "  remote - headless host reached over Tailscale; print a tailnet URL"
+      echo "  remote - headless host; print a URL for a browser on another device"
       printf 'MARK_LOCATION [local/remote]: '
       read -r location || true
       location="${location:-local}"
@@ -95,21 +110,48 @@ if [ ! -e "$conf" ]; then
       exit 1
       ;;
   esac
+
+  access=ssh
+  if [ "$location" = remote ]; then
+    access="${MARK_REMOTE_ACCESS:-}"
+    if [ -z "$access" ]; then
+      if [ -t 0 ]; then
+        echo "How will your browser reach this host?"
+        echo "  ssh       - forward ports 31622 and 31623 over ssh; works from any computer (default)"
+        echo "  tailscale - listen on this host's Tailscale address; the only option that works from a phone"
+        printf 'MARK_REMOTE_ACCESS [ssh/tailscale]: '
+        read -r access || true
+      fi
+      access="${access:-ssh}"
+    fi
+    case "$access" in
+      ssh|tailscale) ;;
+      *)
+        echo "MARK_REMOTE_ACCESS must be ssh or tailscale, got '$access'" >&2
+        exit 1
+        ;;
+    esac
+  fi
+
   cat > "$conf" <<EOF
-# mark's location — read by the \`mark\` command on every run.
+# mark's location — read by the \`mark\` command on every run. Environment
+# variables with the same names override these values.
 #
-# local (default): opens a browser on this machine; preview served on
-#   localhost. Use this on your own laptop/desktop.
+# MARK_LOCATION
+#   local (default): opens a browser on this machine; preview on localhost.
+#   remote: headless host. mark never opens a browser; it prints a URL.
 #
-# remote: this host is reached remotely over Tailscale. mark never tries
-#   to open a browser (there's no local display), and builds the preview
-#   URL from this host's Tailscale address (\`tailscale ip -4\`) instead of
-#   localhost. Requires Tailscale installed and this host joined to your
-#   tailnet — set that up yourself (https://tailscale.com/download), it's
-#   not part of this script.
+# MARK_REMOTE_ACCESS (remote only)
+#   ssh (default): the comments sidecar listens on 127.0.0.1. Forward ports
+#     31622 and 31623 over ssh and open the printed localhost URL.
+#   tailscale: the sidecar listens on this host's Tailscale address and the
+#     URL uses it. Needs Tailscale installed and this host on your tailnet
+#     (https://tailscale.com/download). The only option that works from a
+#     phone.
 MARK_LOCATION=$location
+MARK_REMOTE_ACCESS=$access
 EOF
-  echo "installed $conf (MARK_LOCATION=$location)"
+  echo "installed $conf (MARK_LOCATION=$location, MARK_REMOTE_ACCESS=$access)"
 else
   echo "ok       $conf (exists, left as-is)"
 fi
