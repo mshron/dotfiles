@@ -44,6 +44,12 @@
       '}' +
       '.viv-comment-note-timestamp {' +
       '  font-style: normal; font-size: 0.85em;' +
+      '}' +
+      '.viv-comment-notice {' +
+      '  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;' +
+      '  padding: 6px 12px; font-size: 0.9em;' +
+      '  color: var(--text-primary); background: var(--bg-secondary);' +
+      '  border-bottom: 1px solid var(--border-regular);' +
       '}';
     document.head.appendChild(style);
   }
@@ -123,6 +129,65 @@
     return location.protocol + '//' + location.hostname + ':31623';
   }
 
+  var VERSION = '1.6.0';
+  var TOKEN_KEY = 'mark-token';
+  var memToken = '';
+
+  // The token arrives once in the URL fragment (#ct=...). Keep it in
+  // sessionStorage so it survives the reload fallback below, then drop the
+  // fragment so it is not in the address bar or in copied links.
+  function storeToken(t) {
+    memToken = t;
+    try { sessionStorage.setItem(TOKEN_KEY, t); } catch (e) {}
+  }
+  function token() {
+    if (memToken) return memToken;
+    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
+  }
+  (function takeTokenFromFragment() {
+    var m = /(?:^#|&)ct=([A-Za-z0-9_-]+)/.exec(location.hash);
+    if (!m) return;
+    storeToken(m[1]);
+    history.replaceState(null, '', location.pathname + location.search);
+  })();
+
+  var LOCKED_TEXT = 'Comments are locked. Run `mark` on this file again and open the new URL.';
+  var UPDATED_TEXT = 'mark was updated. Stop `vivify-server` and run `mark` again.';
+
+  function showNotice(text) {
+    var el = document.getElementById('viv-comment-notice');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'viv-comment-notice';
+      el.className = 'viv-comment-notice';
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+  }
+
+  // Every sidecar call goes through here so the token rides along and a
+  // 401/403 shows the locked notice exactly once per state.
+  function authFetch(pathAndQuery, options) {
+    options = options || {};
+    var headers = Object.assign({}, options.headers || {}, { Authorization: 'Bearer ' + token() });
+    return fetch(commentsBase() + pathAndQuery, Object.assign({}, options, { headers: headers }))
+      .then(function (res) {
+        if (res.status === 401 || res.status === 403) showNotice(LOCKED_TEXT);
+        return res;
+      });
+  }
+
+  // Vivify inlines this file at startup, so after an upgrade this code can
+  // be older than the sidecar. Say so instead of failing quietly.
+  function checkVersion() {
+    fetch(commentsBase() + '/health')
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (health) {
+        if (health && health.version !== VERSION) showNotice(UPDATED_TEXT);
+      })
+      .catch(function () {});
+  }
+
   function buildNote(comment) {
     var note = document.createElement('div');
     note.className = 'viv-comment-note';
@@ -159,7 +224,7 @@
     // there are no saved comments yet.
     tagTableRows();
 
-    fetch(commentsBase() + '/comments?file=' + encodeURIComponent(window.VIV_PATH))
+    authFetch('/comments?file=' + encodeURIComponent(window.VIV_PATH))
       .then(function (res) {
         return res.ok ? res.json() : null;
       })
@@ -290,9 +355,7 @@
   function openForm(block) {
     closeOpenForm();
     var form = buildForm('', function (text) {
-      // Target location.hostname, not localhost: Vivify binds all
-      // interfaces and pages may be viewed from another machine.
-      return fetch(commentsBase() + '/comment', {
+      return authFetch('/comment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +386,7 @@
       oldComment: comment.comment,
     };
     function post(url, payload) {
-      return fetch(commentsBase() + url, {
+      return authFetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -353,6 +416,7 @@
   });
 
   renderComments();
+  checkVersion();
 
   // Vivify live-reload replaces the #body-content subtree wholesale, which
   // would wipe our notes; re-render after it settles. Debounced since
@@ -405,7 +469,7 @@
   var commentsMtime = null;
   var reloadPendingSince = 0;
   setInterval(function () {
-    fetch(commentsBase() + '/mtimes?file=' + encodeURIComponent(window.VIV_PATH))
+    authFetch('/mtimes?file=' + encodeURIComponent(window.VIV_PATH))
       .then(function (res) {
         return res.ok ? res.json() : null;
       })
