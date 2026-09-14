@@ -2,8 +2,11 @@
 # Idempotent setup for the `mark` markdown preview + review workflow.
 # Copies Vivify config/sidecar files to ~/.config/vivify (never overwrites
 # existing files), installs the `mark` command to ~/.local/bin, and writes
-# a default mark.conf (MARK_LOCATION=local — see mark.conf's own comments
-# and the "remote host" section of SKILL.md for the remote/Tailscale case).
+# mark.conf if it is missing: it asks whether this host is local or remote
+# (see mark.conf's own comments and the "remote host" section of SKILL.md
+# for the remote/Tailscale case). Set MARK_LOCATION=local|remote in the
+# environment to answer without a prompt; a non-interactive run with no
+# answer defaults to local.
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -68,21 +71,42 @@ done
 
 conf="$HOME/.config/vivify/mark.conf"
 if [ ! -e "$conf" ]; then
-  cat > "$conf" <<'EOF'
-# mark's location — read by the `mark` command on every run.
+  location="${MARK_LOCATION:-}"
+  if [ -z "$location" ]; then
+    if [ -t 0 ]; then
+      echo "Where does mark run on this host?"
+      echo "  local  - this machine has a display; open a browser here (default)"
+      echo "  remote - headless host reached over Tailscale; print a tailnet URL"
+      printf 'MARK_LOCATION [local/remote]: '
+      read -r location || true
+      location="${location:-local}"
+    else
+      location=local
+      echo "note: no terminal to ask local/remote — defaulting MARK_LOCATION=local (edit $conf to change)" >&2
+    fi
+  fi
+  case "$location" in
+    local|remote) ;;
+    *)
+      echo "MARK_LOCATION must be local or remote, got '$location'" >&2
+      exit 1
+      ;;
+  esac
+  cat > "$conf" <<EOF
+# mark's location — read by the \`mark\` command on every run.
 #
 # local (default): opens a browser on this machine; preview served on
 #   localhost. Use this on your own laptop/desktop.
 #
 # remote: this host is reached remotely over Tailscale. mark never tries
 #   to open a browser (there's no local display), and builds the preview
-#   URL from this host's Tailscale address (`tailscale ip -4`) instead of
+#   URL from this host's Tailscale address (\`tailscale ip -4\`) instead of
 #   localhost. Requires Tailscale installed and this host joined to your
 #   tailnet — set that up yourself (https://tailscale.com/download), it's
 #   not part of this script.
-MARK_LOCATION=local
+MARK_LOCATION=$location
 EOF
-  echo "installed $conf (MARK_LOCATION=local)"
+  echo "installed $conf (MARK_LOCATION=$location)"
 else
   echo "ok       $conf (exists, left as-is)"
 fi

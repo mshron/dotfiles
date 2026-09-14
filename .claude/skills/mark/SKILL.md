@@ -2,8 +2,8 @@
 name: mark
 description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify, whenever they ask to review/address/handle comments or feedback, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.4.3"
-version_date: "2026-07-30"
+version: "1.5.0"
+version_date: "2026-09-14"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
 
@@ -105,7 +105,10 @@ Works on macOS and Linux. If `mark` is not on PATH or
    (e.g. `sudo apt-get install -y nodejs`) — ask first, same as macOS.
 2. Run `scripts/setup.sh` from this skill's directory. It is idempotent:
    copies config files to `~/.config/vivify/` (never overwrites existing
-   files, including `mark.conf` — see below), installs `mark` to
+   files), asks whether this host is `local` or `remote` and writes
+   `mark.conf` from the answer (see below; set `MARK_LOCATION` in the
+   environment to skip the question, non-interactive runs default to
+   `local`), installs `mark` to
    `~/.local/bin/`, adds a zsh tab-completion override to `~/.zshrc` on
    macOS (zsh otherwise binds `mark` to the MH mail system's completion,
    so tab produces nothing), and warns about PATH or shadowing problems
@@ -113,8 +116,8 @@ Works on macOS and Linux. If `mark` is not on PATH or
 
 ## Running on a remote host
 
-`~/.config/vivify/mark.conf` (written by `setup.sh`, then yours to edit)
-controls where `mark` thinks it's running:
+`~/.config/vivify/mark.conf` (written by `setup.sh` from your answer at
+first run, then yours to edit) controls where `mark` thinks it's running:
 
 ```bash
 MARK_LOCATION=local   # default: opens a browser here, preview on localhost
