@@ -6,11 +6,14 @@
 # Servers auto-start if down. Vivify's idle timeout is set long (24h, see
 # ~/.config/vivify/config.json) so the preview URL survives suspended panes.
 #
-# Works on macOS and Linux. Reads ~/.config/vivify/mark.conf for
-# MARK_LOCATION (local, the default, or remote — see setup.sh). In remote
-# mode there's no local display to open a browser on, so mark always just
-# prints the URL, built from this host's Tailscale address instead of
-# localhost.
+# Works on macOS and Linux. Reads ~/.config/vivify/mark.conf (environment
+# variables override it) for:
+#   MARK_LOCATION       local (default) or remote
+#   MARK_REMOTE_ACCESS  ssh (default) or tailscale — how a browser reaches a
+#                       remote host
+# From these it picks the address the comments sidecar listens on
+# (MARK_BIND: 127.0.0.1, or this host's Tailscale IP) and the host in the
+# printed URL. The sidecar's per-host token rides in the URL fragment.
 
 no_open=0
 if [[ $1 == --no-open ]]; then
@@ -23,28 +26,54 @@ if [[ -z $1 || ! -f $1 ]]; then
   exit 1
 fi
 
-if [[ -z ${MARK_LOCATION:-} && -f "$HOME/.config/vivify/mark.conf" ]]; then
+# Environment beats mark.conf for both settings.
+env_location=${MARK_LOCATION:-}
+env_access=${MARK_REMOTE_ACCESS:-}
+if [[ -f "$HOME/.config/vivify/mark.conf" ]]; then
   . "$HOME/.config/vivify/mark.conf"
 fi
-location=${MARK_LOCATION:-local}
+location=${env_location:-${MARK_LOCATION:-local}}
+remote_access=${env_access:-${MARK_REMOTE_ACCESS:-ssh}}
 
 port=${VIV_PORT:-31622}
+cport=${VIV_COMMENTS_PORT:-31623}
+token_file="$HOME/.local/state/mark/token"
 
-if [[ $location == remote ]]; then
-  host=$(tailscale ip -4 2>/dev/null)
-  if [[ -z $host ]]; then
-    echo "mark: MARK_LOCATION=remote but \`tailscale ip -4\` returned nothing — is tailscaled running and this host joined to a tailnet?" >&2
+case $location in
+  local)
+    bind=127.0.0.1
+    host=localhost
+    ;;
+  remote)
+    # No local display: always just print the URL.
+    no_open=1
+    case $remote_access in
+      ssh)
+        bind=127.0.0.1
+        host=localhost
+        ;;
+      tailscale)
+        bind=$(tailscale ip -4 2>/dev/null)
+        if [[ -z $bind ]]; then
+          echo "mark: MARK_REMOTE_ACCESS=tailscale but \`tailscale ip -4\` returned nothing — is tailscaled running and this host joined to a tailnet?" >&2
+          exit 1
+        fi
+        host=$bind
+        ;;
+      *)
+        echo "mark: unknown MARK_REMOTE_ACCESS '$remote_access' (expected ssh or tailscale)" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "mark: unknown MARK_LOCATION '$location' (expected local or remote)" >&2
     exit 1
-  fi
-  no_open=1
-elif [[ $location != local ]]; then
-  echo "mark: unknown MARK_LOCATION '$location' (expected local or remote)" >&2
-  exit 1
-else
-  host=localhost
-fi
+    ;;
+esac
+export MARK_BIND=$bind
 
-url="http://${host}:${port}/viewer$(realpath "$1")"
+abs=$(realpath "$1")
 
 # Detach into a new session/process group (setsid via node), not just nohup:
 # agent harnesses (e.g. Codex) kill the command's whole process group when the
@@ -61,9 +90,38 @@ if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${port}/health"; then
   done
 fi
 
-if ! curl -sf -o /dev/null --max-time 1 "http://localhost:${VIV_COMMENTS_PORT:-31623}/health"; then
+sidecar="http://${bind}:${cport}"
+if ! curl -sf -o /dev/null --max-time 1 "$sidecar/health"; then
   detach node ~/.config/vivify/comments-server.mjs
+  for _ in {1..30}; do
+    curl -sf -o /dev/null --max-time 1 "$sidecar/health" && break
+    sleep 0.1
+  done
 fi
+
+# An older sidecar (or none) answers here after an upgrade or a port clash.
+# It would not know /register or the token, so stop instead of guessing.
+if ! curl -sf --max-time 1 "$sidecar/health" | grep -q '"version":"1.6.0"'; then
+  echo "mark: the comments sidecar on ${bind}:${cport} is missing or is an older version. Stop it and run mark again:" >&2
+  echo "  pkill -f comments-server.mjs" >&2
+  exit 1
+fi
+
+token=$(cat "$token_file" 2>/dev/null)
+if [[ -z $token ]]; then
+  echo "mark: no token at $token_file — the comments sidecar should have written it" >&2
+  exit 1
+fi
+
+# Tell the sidecar which document it may act on. Exact file, real path.
+if ! curl -sf -o /dev/null --max-time 2 -X POST "$sidecar/register" \
+    -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+    --data "{\"file\":$(node -p 'JSON.stringify(process.argv[1])' "$abs")}"; then
+  echo "mark: could not register $abs with the comments sidecar" >&2
+  exit 1
+fi
+
+url="http://${host}:${port}/viewer${abs}#ct=${token}"
 
 if (( no_open )); then
   # caller opens the URL itself (e.g. an agent with an in-app browser), or
@@ -83,3 +141,12 @@ elif command -v xdg-open >/dev/null 2>&1; then
 fi
 
 echo "$url"
+
+# Hint goes to stderr so stdout stays the bare URL for callers that parse it.
+if [[ $location == remote && $remote_access == ssh ]]; then
+  cat >&2 <<HINT
+remote host: forward the ports first, e.g.
+  ssh -L ${port}:localhost:${port} -L ${cport}:localhost:${cport} $(hostname)
+or add two LocalForward lines to ~/.ssh/config for this host.
+HINT
+fi
