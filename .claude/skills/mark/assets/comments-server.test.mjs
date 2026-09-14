@@ -239,7 +239,7 @@ test('mtimes and comments routes also require registration', async () => {
     const q = `?file=${encodeURIComponent(doc)}`;
     assert.equal((await fetch(`${s.base}/mtimes${q}`, { headers: auth(s) })).status, 403);
     assert.equal((await fetch(`${s.base}/comments${q}`, { headers: auth(s) })).status, 403);
-    await register(s, doc);
+    assert.equal((await register(s, doc)).status, 204);
     const m = await (await fetch(`${s.base}/mtimes${q}`, { headers: auth(s) })).json();
     assert.equal(typeof m.doc, 'number');
     assert.equal(m.comments, null);
@@ -251,7 +251,7 @@ test('update and delete work through the allowlist and delete removes an empty f
   const s = await startServer();
   const doc = tmpDoc(s);
   try {
-    await register(s, doc);
+    assert.equal((await register(s, doc)).status, 204);
     await postComment(s, doc, 'first');
     const [c] = await (await fetch(`${s.base}/comments?file=${encodeURIComponent(doc)}`, { headers: auth(s) })).json();
     const identity = { file: doc, line: c.line, quote: c.quote, timestamp: c.timestamp, oldComment: c.comment };
@@ -261,5 +261,27 @@ test('update and delete work through the allowlist and delete removes an empty f
     res = await fetch(`${s.base}/comment/delete`, { method: 'POST', headers: auth(s), body: JSON.stringify({ ...identity, oldComment: 'second' }) });
     assert.equal(res.status, 204);
     assert.equal(fs.existsSync(`${doc}.comments.md`), false);
+  } finally { stop(s); }
+});
+
+test('register refuses a request with an Origin header, and does not register the file', async () => {
+  const s = await startServer({ VIV_PORT: '31622' });
+  const doc = tmpDoc(s);
+  try {
+    const res = await fetch(`${s.base}/register`, {
+      method: 'POST',
+      headers: auth(s, { Origin: 'http://127.0.0.1:31622' }),
+      body: JSON.stringify({ file: doc }),
+    });
+    assert.equal(res.status, 403);
+    assert.equal(await res.text(), 'register is for the mark command, not a browser');
+    const comment = await fetch(`${s.base}/comment`, {
+      method: 'POST',
+      headers: auth(s),
+      body: JSON.stringify({ file: doc, line: 3, quote: 'some text', comment: 'looks good' }),
+    });
+    assert.equal(comment.status, 403);
+    assert.equal(await comment.text(), 'file not registered');
+    assert.equal((await register(s, doc)).status, 204);
   } finally { stop(s); }
 });

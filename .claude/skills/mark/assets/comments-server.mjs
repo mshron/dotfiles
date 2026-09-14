@@ -13,6 +13,8 @@
 // - Only documents that `mark` registered through POST /register (in this
 //   process's lifetime) can be read or written. The comments file is always
 //   <registered real path>.comments.md.
+// - /register refuses any request that carries an Origin header, so only
+//   the `mark` command (which never sends one) can register documents.
 // - The Origin header, when present, must be the Vivify page origin.
 // - Bodies over 64 KiB get 413.
 import http from 'node:http';
@@ -197,6 +199,10 @@ const server = http.createServer({ requestTimeout: 10000, headersTimeout: 5000 }
     }
 
     if (req.method === 'POST' && req.url === '/register') {
+      if (req.headers.origin !== undefined) {
+        send(res, 403, 'register is for the mark command, not a browser', TEXT);
+        return;
+      }
       const raw = await readBody(req);
       let body;
       try {
