@@ -112,8 +112,8 @@ Works on macOS and Linux. If `mark` is not on PATH or
    `MARK_LOCATION` and `MARK_REMOTE_ACCESS` in the environment to skip
    the questions; non-interactive runs default to `local`), installs
    `mark` to
-   `~/.local/bin/`, adds a zsh tab-completion override to `~/.zshrc` on
-   macOS (zsh otherwise binds `mark` to the MH mail system's completion,
+   `~/.local/bin/`, adds a zsh tab-completion override to `~/.zshrc`
+   (zsh otherwise binds `mark` to the MH mail system's completion,
    so tab produces nothing), and warns about PATH or shadowing problems
    (e.g. an old `alias mark='open -a "Marked 2"'`).
 
@@ -133,8 +133,7 @@ MARK_REMOTE_ACCESS=tailscale # reach it over your tailnet; the phone path
 
 A `mark.conf` written by mark 1.5 has `MARK_LOCATION` but no
 `MARK_REMOTE_ACCESS`, so after upgrading, `mark` treats that host as
-`ssh`. Every 1.5 remote host used Tailscale. If you want to keep that,
-add the line `MARK_REMOTE_ACCESS=tailscale` to
+`ssh`. Every 1.5 remote host used Tailscale. If you want to keep using Tailscale, add the line `MARK_REMOTE_ACCESS=tailscale` to
 `~/.config/vivify/mark.conf`.
 
 **Over ssh (default).** The comments sidecar listens on `127.0.0.1` only.
@@ -207,7 +206,7 @@ until Vivify gains a bind-address option.
   and verifies its SHA-256. On macOS it asks you to `brew install`.
 - Files written: `<doc>.comments.md` beside the document (created,
   rewritten, and removed by the sidecar), `~/.local/state/mark/token`,
-  `~/.config/vivify/*` and `~/.local/bin/mark` by `setup.sh`, and one
+  `~/.config/vivify/*` and `~/.local/bin/mark` by `setup.sh` (and on Linux `~/.local/bin/vivify-server` and `~/.local/bin/viv`, the downloaded Vivify binaries), and one
   `compdef` line appended to `~/.zshrc`.
 
 ## Review workflow: <file>.comments.md
@@ -267,8 +266,7 @@ open comment in the preview to edit its text in place or delete it.
   place, deletes remove it (and remove the file itself when no blocks
   remain). It polls Vivify's `/health` and exits when the preview server
   is gone. Its `/health` returns `{"version":"1.6.0"}`; `comments.js`
-  compares and shows "mark was updated" if the page runs older code than
-  the sidecar.
+  compares and shows "mark was updated" if the page and the sidecar report different versions.
 - Vivify's own live-reload watches the file inode, which dies when a file
   is saved by rename (atomic replace — how Claude Code and many editors
   write). `comments.js` covers this: it polls the sidecar's `/mtimes` and
