@@ -2,7 +2,7 @@
 name: mark
 description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify, whenever they ask to review/address/handle comments or feedback, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.5.0"
+version: "1.6.0"
 version_date: "2026-09-14"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -100,15 +100,18 @@ Works on macOS and Linux. If `mark` is not on PATH or
 
 1. Dependencies: `vivify-server` and `node`. On macOS both come via
    Homebrew — **ask the user before installing anything**
-   (`brew install vivify node`). On Linux, `setup.sh` downloads Vivify's
-   own release binary itself; only `node` needs installing up front
+   (`brew install vivify node`). On Linux, `setup.sh` downloads one
+   pinned Vivify release (v0.14.0) and checks its SHA-256 before
+   installing; only `node` needs installing up front
    (e.g. `sudo apt-get install -y nodejs`) — ask first, same as macOS.
 2. Run `scripts/setup.sh` from this skill's directory. It is idempotent:
    copies config files to `~/.config/vivify/` (never overwrites existing
-   files), asks whether this host is `local` or `remote` and writes
-   `mark.conf` from the answer (see below; set `MARK_LOCATION` in the
-   environment to skip the question, non-interactive runs default to
-   `local`), installs `mark` to
+   files), asks whether this host is `local` or `remote`, and for a
+   remote host whether your browser reaches it over `ssh` or
+   `tailscale`, then writes `mark.conf` from the answers (see below; set
+   `MARK_LOCATION` and `MARK_REMOTE_ACCESS` in the environment to skip
+   the questions; non-interactive runs default to `local`), installs
+   `mark` to
    `~/.local/bin/`, adds a zsh tab-completion override to `~/.zshrc` on
    macOS (zsh otherwise binds `mark` to the MH mail system's completion,
    so tab produces nothing), and warns about PATH or shadowing problems
@@ -116,30 +119,96 @@ Works on macOS and Linux. If `mark` is not on PATH or
 
 ## Running on a remote host
 
-`~/.config/vivify/mark.conf` (written by `setup.sh` from your answer at
-first run, then yours to edit) controls where `mark` thinks it's running:
+`~/.config/vivify/mark.conf` (written by `setup.sh` from your answers at
+first run, then yours to edit; environment variables of the same names
+override it) controls where `mark` thinks it is running and how a browser
+reaches it:
 
 ```bash
-MARK_LOCATION=local   # default: opens a browser here, preview on localhost
-MARK_LOCATION=remote  # headless host, reached over Tailscale
+MARK_LOCATION=local          # default: opens a browser here, preview on localhost
+MARK_LOCATION=remote         # headless host: never opens a browser, prints the URL
+MARK_REMOTE_ACCESS=ssh       # default for remote: reach it over ssh port forwarding
+MARK_REMOTE_ACCESS=tailscale # reach it over your tailnet; the phone path
 ```
 
-In `remote` mode, `mark` never tries to open a browser — there's no local
-display — and builds the preview URL from this host's Tailscale address
-(`tailscale ip -4`) instead of `localhost`, so it's ready to paste into a
-browser on your own machine. This requires Tailscale installed and the
-host already joined to your tailnet (https://tailscale.com/download) —
-set that up yourself; it's independent of `mark` and not part of
-`setup.sh`. `mark` refuses to run in `remote` mode if `tailscale ip -4`
-returns nothing.
+A `mark.conf` written by mark 1.5 has `MARK_LOCATION` but no
+`MARK_REMOTE_ACCESS`, so after upgrading, `mark` treats that host as
+`ssh`. Every 1.5 remote host used Tailscale. If you want to keep that,
+add the line `MARK_REMOTE_ACCESS=tailscale` to
+`~/.config/vivify/mark.conf`.
 
-Both of `mark`'s servers (`vivify-server` and the comments sidecar) bind
-every network interface on the host, not just Tailscale's, and neither
-checks who's calling — the comments sidecar in particular accepts
-unauthenticated writes. If the host also has a public IP, firewall ports
-`$VIV_PORT` (default 31622) and `$VIV_COMMENTS_PORT` (default 31623) down
-to the Tailscale interface and loopback only, or Tailscale won't actually
-be your access control.
+**Over ssh (default).** The comments sidecar listens on `127.0.0.1` only.
+`mark` prints a `localhost` URL and a reminder to forward the two ports.
+From your own computer:
+
+```bash
+ssh -L 31622:localhost:31622 -L 31623:localhost:31623 <host>
+```
+
+Or make it permanent in `~/.ssh/config`:
+
+```text
+Host <host>
+  LocalForward 31622 localhost:31622
+  LocalForward 31623 localhost:31623
+```
+
+Then paste the printed URL into your browser. VS Code and Cursor
+remote-SSH sessions forward these ports on their own when they see them
+open. Stop any `mark` servers on your own computer first if they use the
+same ports. The tunnel lives as long as the ssh session.
+
+**Over Tailscale.** The sidecar listens on this host's Tailscale IPv4
+address (`tailscale ip -4`) and the URL uses it. Requires Tailscale
+installed and the host joined to your tailnet
+(https://tailscale.com/download); that is your setup, not `setup.sh`'s.
+`mark` refuses to run if `tailscale ip -4` returns nothing. This is the
+only mode that works from a phone: iOS stops ssh apps within about 30
+seconds of switching to Safari, so an ssh tunnel does not survive, but
+the Tailscale app runs as a VPN and stays up.
+
+**The token.** Every URL `mark` prints ends in `#ct=<token>`. That token is
+per host, created by the sidecar at first start in
+`~/.local/state/mark/token` (mode 0600). The page keeps it in
+`sessionStorage`, removes it from the address bar, and sends it on every
+sidecar request. Without it the page shows "Comments are locked" and no
+write succeeds. Anyone who sees the full URL can comment, so share the
+URL without the fragment if you only want to share the preview. To rotate
+the token: delete the file, stop the sidecar (`pkill -f
+comments-server.mjs`), and run `mark` again.
+
+**What the sidecar will and will not do.** It acts only on documents that
+`mark` opened since the sidecar started. After a sidecar restart an open
+tab shows the locked notice until you run `mark` on that file again.
+
+**Vivify still listens on every interface.** The preview server has no
+setting for its listen address, so anyone who can reach port 31622 on
+the host can read any file you can read. If the host has a public
+address, firewall port 31622 down to loopback (and the Tailscale
+interface if you use it). This is the one control left for that port
+until Vivify gains a bind-address option.
+
+## What mark runs and connects to
+
+- Two HTTP servers on this host, started detached by `mark` when down:
+  `vivify-server` on `$VIV_PORT` (default 31622, listens on every
+  interface; not configurable upstream) and `comments-server.mjs` on
+  `$VIV_COMMENTS_PORT` (default 31623, listens on `127.0.0.1`, or on the
+  Tailscale address in `remote` + `tailscale` mode; refuses wildcards).
+- The sidecar requires `Authorization: Bearer <token>` on every request
+  except `GET /health`, accepts bodies up to 64 KiB, allows only the
+  Vivify page origin, and acts only on files registered through
+  `POST /register` by `mark`.
+- Local commands `mark` runs: `curl` to the two servers on this host,
+  `tailscale ip -4` in `tailscale` mode, and one of `open`, `xdg-open`,
+  or the cmux CLI to open the browser (never in `remote` mode).
+- Outbound network in the installer: on Linux, `setup.sh` downloads
+  `https://github.com/jannis-baum/Vivify/releases/download/v0.14.0/vivify-linux.tar.gz`
+  and verifies its SHA-256. On macOS it asks you to `brew install`.
+- Files written: `<doc>.comments.md` beside the document (created,
+  rewritten, and removed by the sidecar), `~/.local/state/mark/token`,
+  `~/.config/vivify/*` and `~/.local/bin/mark` by `setup.sh`, and one
+  `compdef` line appended to `~/.zshrc`.
 
 ## Review workflow: <file>.comments.md
 
@@ -197,7 +266,9 @@ open comment in the preview to edit its text in place or delete it.
   are appended to `<file>.comments.md`, edits rewrite the matching block in
   place, deletes remove it (and remove the file itself when no blocks
   remain). It polls Vivify's `/health` and exits when the preview server
-  is gone.
+  is gone. Its `/health` returns `{"version":"1.6.0"}`; `comments.js`
+  compares and shows "mark was updated" if the page runs older code than
+  the sidecar.
 - Vivify's own live-reload watches the file inode, which dies when a file
   is saved by rename (atomic replace — how Claude Code and many editors
   write). `comments.js` covers this: it polls the sidecar's `/mtimes` and
