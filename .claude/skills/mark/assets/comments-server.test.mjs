@@ -110,3 +110,49 @@ test('refuses to start on a wildcard address', async () => {
     await assert.rejects(startServer({ MARK_BIND: bind }), (e) => e.code === 1 && /refusing to listen/.test(e.stderr));
   }
 });
+
+test('a foreign Origin gets 403 even with the token', async () => {
+  const s = await startServer();
+  try {
+    const res = await fetch(`${s.base}/comments?file=/tmp/x.md`, {
+      headers: auth(s, { Origin: 'http://evil.example' }),
+    });
+    assert.equal(res.status, 403);
+    assert.equal(await res.text(), 'origin not allowed');
+  } finally { stop(s); }
+});
+
+test('preflight from the Vivify origin is allowed and echoes it', async () => {
+  const s = await startServer({ VIV_PORT: '31622' });
+  try {
+    for (const origin of ['http://127.0.0.1:31622', 'http://localhost:31622']) {
+      const res = await fetch(`${s.base}/comment`, { method: 'OPTIONS', headers: { Origin: origin } });
+      assert.equal(res.status, 204);
+      assert.equal(res.headers.get('access-control-allow-origin'), origin);
+      assert.match(res.headers.get('access-control-allow-headers'), /Authorization/);
+    }
+  } finally { stop(s); }
+});
+
+test('an origin with the wrong port gets 403', async () => {
+  // Bind to the loopback alias so the test runs anywhere, and check the
+  // allowed set is computed from the bind address, not hardcoded.
+  const s = await startServer({ MARK_BIND: '127.0.0.1', VIV_PORT: '31622' });
+  try {
+    const res = await fetch(`${s.base}/health`, { headers: { Origin: 'http://127.0.0.1:9999' } });
+    assert.equal(res.status, 403);
+  } finally { stop(s); }
+});
+
+test('a 70 KiB body gets 413', async () => {
+  const s = await startServer();
+  try {
+    const res = await fetch(`${s.base}/comment`, {
+      method: 'POST',
+      headers: auth(s),
+      body: 'x'.repeat(70 * 1024),
+    });
+    assert.equal(res.status, 413);
+    assert.equal(await res.text(), 'body too large');
+  } finally { stop(s); }
+});
