@@ -85,9 +85,12 @@ CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 jq '.statusLine = {"type": "command", "command": "~/.claude/hooks/context-bar.sh"} | .permissions.defaultMode = "auto"' \
   "$CLAUDE_SETTINGS" > "$CLAUDE_SETTINGS.tmp" && mv "$CLAUDE_SETTINGS.tmp" "$CLAUDE_SETTINGS"
 
-# Codex — update the adapted instructions while preserving Codex's skill metadata
+# Codex — update the adapted instructions while preserving Codex's skill metadata.
+# Skip the copy when the target already matches (or is a symlink to the
+# same file — cp would fail with "identical" and abort the install).
 mkdir -p "$HOME/.agents/skills/mark"
-cp "$DOTFILES/.claude/skills/mark/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md"
+cmp -s "$DOTFILES/.claude/skills/mark/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md" \
+  || cp "$DOTFILES/.claude/skills/mark/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md"
 
 "$DOTFILES/.claude/skills/mark/scripts/setup.sh" || true
 

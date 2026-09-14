@@ -29,7 +29,10 @@ case "$OS" in
       echo "Install it, then re-run this script." >&2
       exit 1
     fi
-    if ! command -v vivify-server >/dev/null; then
+    # Also accept an earlier install in ~/.local/bin: a non-login shell (e.g.
+    # over ssh) may not have it on PATH, and re-downloading over a running
+    # binary fails with "Text file busy".
+    if ! command -v vivify-server >/dev/null && [ ! -x "$HOME/.local/bin/vivify-server" ]; then
       command -v curl >/dev/null || { echo "Missing dependency: curl" >&2; exit 1; }
       command -v tar >/dev/null || { echo "Missing dependency: tar" >&2; exit 1; }
       tmp="$(mktemp -d)"
