@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 
 const SERVER = fileURLToPath(new URL('./comments-server.mjs', import.meta.url));
@@ -71,11 +72,26 @@ test('reuses an existing token file on restart', async () => {
   } finally { stop(s2); }
 });
 
+// Returns a port the operating system has just confirmed is free. The default
+// rule below binds a real port, so a fixed number would clash with whatever
+// the machine already runs (an ssh tunnel, another mark).
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+
 test('the sidecar port defaults to the preview port plus one', async () => {
+  const wanted = await freePort();
   // VIV_COMMENTS_PORT is left unset so the default rule is what binds.
-  const s = await startServer({ VIV_PORT: '41622', VIV_COMMENTS_PORT: undefined });
+  const s = await startServer({ VIV_PORT: String(wanted - 1), VIV_COMMENTS_PORT: undefined });
   try {
-    assert.equal(new URL(s.base).port, '41623');
+    assert.equal(new URL(s.base).port, String(wanted));
   } finally { stop(s); }
 });
 
