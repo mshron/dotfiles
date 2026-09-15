@@ -2,7 +2,7 @@
 name: mark
 description: The default way to show a markdown file to the user — a live browser preview via Vivify (live reload, KaTeX, syntax highlighting) with click-to-comment review that writes reader feedback to a .comments.md file beside the doc. Use whenever the user should read a markdown doc you wrote or edited, whenever they ask to see/preview/render/review one, whenever they mention mark/markb/vivify, whenever they ask to review/address/handle comments or feedback, and whenever a .comments.md review file (full filename + suffix, e.g. spec.md.comments.md) exists next to a markdown doc you are editing. Prefer mark over dumping markdown to the terminal or macOS `open`.
 author: "Max Shron"
-version: "1.6.0"
+version: "1.7.0"
 version_date: "2026-09-14"
 keywords: [markdown, preview, vivify, review, comments, feedback, katex, live-reload]
 ---
@@ -129,48 +129,72 @@ MARK_LOCATION=local          # default: opens a browser here, preview on localho
 MARK_LOCATION=remote         # headless host: never opens a browser, prints the URL
 MARK_REMOTE_ACCESS=ssh       # default for remote: reach it over ssh port forwarding
 MARK_REMOTE_ACCESS=tailscale # reach it over your tailnet; use this from a phone
+MARK_PORT=31622              # preview port; the sidecar uses the next port up
 ```
 
-**Upgrading from mark 1.5.** Stop both servers first, then run `mark`
-again: `pkill -f vivify-server; pkill -f comments-server.mjs`. Vivify
-loads `comments.js` only at start, so an old Vivify keeps the old page
-code and every comment fails until it restarts. If `~/.config/vivify`
-holds copies of mark's files rather than links to this skill's
-`assets/`, delete `comments-server.mjs` and `comments.js` there and run
-`setup.sh` again (it copies only missing files), or copy the two new
-files by hand. A 1.5 `mark.conf` has no `MARK_REMOTE_ACCESS`, so a
-remote host now uses `ssh`. If you want to keep using Tailscale, add
-the line `MARK_REMOTE_ACCESS=tailscale` to `~/.config/vivify/mark.conf`.
+**Pick the mode by where you read, not by what is easiest to set up.**
+The two modes do not cover the same ground:
 
-**Over ssh (default).** The comments sidecar listens on `127.0.0.1` only.
-`mark` prints a `localhost` URL and a reminder to forward the two ports.
-From your own computer:
+| You read the preview in | ssh | Tailscale |
+|---|---|---|
+| The Claude Code browser panel | yes | no |
+| Safari, Chrome, or another browser on your computer | yes | yes |
+| A phone | no | yes |
 
-```bash
-ssh -L 31622:localhost:31622 -L 31623:localhost:31623 <host>
-```
+The Claude Code browser panel refuses a request to a second port on any
+host that is not `localhost`. The page loads, but every comment fails.
+An ssh tunnel puts both ports on `localhost`, so the panel accepts them.
 
-Or make it permanent in `~/.ssh/config`:
+**Two ports, always next to each other.** `MARK_PORT` sets the preview
+port and the comment sidecar takes the next port up. The browser script
+works the pair out from the port the page came from, so one number is
+all you set. Give a host you read over ssh its own pair — `setup.sh`
+writes `MARK_PORT=41622` for such a host — or it cannot run at the same
+time as the `mark` on the computer you read from.
+
+**Upgrading from mark 1.6.** Stop both servers, then run `mark` again:
+`pkill -f vivify-server; pkill -f comments-server.mjs`. Vivify loads
+`comments.js` only at start, so an old Vivify keeps the old page code
+and every comment fails until it restarts. `mark` stops with a message
+naming this if it finds an older sidecar. If `~/.config/vivify` holds
+copies of mark's files rather than links to this skill's `assets/`,
+delete `comments-server.mjs` and `comments.js` there and run `setup.sh`
+again (it copies only missing files). A `mark.conf` from 1.6 has no
+`MARK_PORT`; the preview then stays on 31622, which is correct for a
+local host and for Tailscale.
+
+**Over ssh (default).** The comments sidecar listens on `127.0.0.1`
+only. `mark` prints a `localhost` URL and the exact `~/.ssh/config`
+block to add on the computer you read from:
 
 ```text
-Host <host>
-  LocalForward 31622 localhost:31622
-  LocalForward 31623 localhost:31623
+Host <host>-mark
+  HostName <host>
+  LocalForward 41622 localhost:41622
+  LocalForward 41623 localhost:41623
+  SessionType none
+  ExitOnForwardFailure yes
 ```
 
-Then paste the printed URL into your browser. VS Code and Cursor
-remote-SSH sessions forward these ports on their own when they see them
-open. Stop any `mark` servers on your own computer first if they use the
-same ports. The tunnel lives as long as the ssh session.
+Then keep `ssh <host>-mark` running while you read. It opens the two
+forwards and no shell. Use a separate alias rather than adding the
+forwards to the host's own entry, so ordinary `ssh <host>` is unchanged.
+
+Start a second connection for the tunnel even when you already have one
+open. Some tools start ssh with `ClearAllForwardings=yes` — the Claude
+Code desktop app is one — and that setting drops every forward from
+`~/.ssh/config` and from the command line.
 
 **Over Tailscale.** The sidecar listens on this host's Tailscale IPv4
 address (`tailscale ip -4`) and the URL uses it. Requires Tailscale
 installed and the host joined to your tailnet
 (https://tailscale.com/download); that is your setup, not `setup.sh`'s.
-`mark` refuses to run if `tailscale ip -4` returns nothing. This is the
-only mode that works from a phone: iOS stops ssh apps within about 30
-seconds of switching to Safari, so an ssh tunnel does not survive, but
-the Tailscale app runs as a VPN and stays up.
+`mark` refuses to run if `tailscale ip -4` returns nothing. No port
+forwarding is needed, and the ports need not differ from a local mark's,
+because the address differs. This is the only mode that works from a
+phone: iOS stops ssh apps within about 30 seconds of switching to
+Safari, so an ssh tunnel does not survive, but the Tailscale app runs as
+a VPN and stays up. It does not work in the Claude Code browser panel.
 
 **The token.** Every URL `mark` prints ends in `#ct=<token>`. That token is
 per host, created by the sidecar at first start in
@@ -187,18 +211,18 @@ comments-server.mjs`), and run `mark` again.
 tab shows the locked notice until you run `mark` on that file again.
 
 **Vivify still listens on every interface.** The preview server has no
-setting for its listen address, so anyone who can reach port 31622 on
+setting for its listen address, so anyone who can reach the preview port on
 the host can read any file you can read. If the host has a public
-address, firewall port 31622 down to loopback (and the Tailscale
+address, firewall the preview port down to loopback (and the Tailscale
 interface if you use it). This is the one control left for that port
 until Vivify gains a bind-address option.
 
 ## What mark runs and connects to
 
 - Two HTTP servers on this host, started detached by `mark` when down:
-  `vivify-server` on `$VIV_PORT` (default 31622, listens on every
+  `vivify-server` on `$VIV_PORT` (set from `MARK_PORT`, default 31622; listens on every
   interface; not configurable upstream) and `comments-server.mjs` on
-  `$VIV_COMMENTS_PORT` (default 31623, listens on `127.0.0.1`, or on the
+  `$VIV_COMMENTS_PORT` (default: the preview port plus one; listens on `127.0.0.1`, or on the
   Tailscale address in `remote` + `tailscale` mode; refuses wildcards).
 - The sidecar requires `Authorization: Bearer <token>` on every request
   except `GET /health`, accepts bodies up to 64 KiB, allows only the
@@ -260,13 +284,13 @@ open comment in the preview to edit its text in place or delete it.
 
 ## How it works
 
-- `vivify-server` (port `$VIV_PORT`, default 31622) serves the preview;
+- `vivify-server` (port `$VIV_PORT`, set from `MARK_PORT`, default 31622) serves the preview;
   `~/.config/vivify/config.json` points it at `theme.css` (Anthropic-style
   theme) and injects `comments.js` (the click-to-comment UI). Vivify reads
   and inlines these at **startup** — after editing them, restart
   `vivify-server` (and reload the page), or the browser keeps getting the
   old code.
-- `comments-server.mjs` (port `$VIV_COMMENTS_PORT`, default 31623) is a
+- `comments-server.mjs` (port `$VIV_COMMENTS_PORT`, default: the preview port plus one) is a
   zero-dependency node sidecar that accepts comment POSTs — new comments
   are appended to `<file>.comments.md`, edits rewrite the matching block in
   place, deletes remove it (and remove the file itself when no blocks

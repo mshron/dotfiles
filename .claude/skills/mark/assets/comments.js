@@ -125,11 +125,16 @@
     return contentEl;
   }
 
+  // The comment sidecar always listens on the preview port plus one. Deriving
+  // it here, instead of fixing it at 31623, lets a host run on its own port
+  // pair — needed when you forward a remote preview over ssh while a local
+  // mark still holds the default pair.
   function commentsBase() {
-    return location.protocol + '//' + location.hostname + ':31623';
+    var previewPort = Number(location.port) || 31622;
+    return location.protocol + '//' + location.hostname + ':' + (previewPort + 1);
   }
 
-  var VERSION = '1.6.0';
+  var VERSION = '1.7.0';
   var TOKEN_KEY = 'mark-token';
   var memToken = '';
 

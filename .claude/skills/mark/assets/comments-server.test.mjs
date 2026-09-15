@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SERVER = fileURLToPath(new URL('./comments-server.mjs', import.meta.url));
-const VERSION = '1.6.0';
+const VERSION = '1.7.0';
 
 export function startServer(env = {}) {
   return new Promise((resolve, reject) => {
@@ -69,6 +69,33 @@ test('reuses an existing token file on restart', async () => {
   try {
     assert.equal(s2.token, first);
   } finally { stop(s2); }
+});
+
+test('the sidecar port defaults to the preview port plus one', async () => {
+  // VIV_COMMENTS_PORT is left unset so the default rule is what binds.
+  const s = await startServer({ VIV_PORT: '41622', VIV_COMMENTS_PORT: undefined });
+  try {
+    assert.equal(new URL(s.base).port, '41623');
+  } finally { stop(s); }
+});
+
+test('the allowed origin follows VIV_PORT, not the fixed default', async () => {
+  const s = await startServer({ VIV_PORT: '41622' });
+  try {
+    const good = await fetch(`${s.base}/comment`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'http://localhost:41622', 'Access-Control-Request-Method': 'POST' },
+    });
+    assert.equal(good.status, 204);
+    assert.equal(good.headers.get('access-control-allow-origin'), 'http://localhost:41622');
+
+    const stale = await fetch(`${s.base}/comment`, {
+      method: 'POST',
+      headers: auth(s, { Origin: 'http://localhost:31622' }),
+      body: JSON.stringify({ file: '/tmp/x.md', line: 1, comment: 'x' }),
+    });
+    assert.equal(stale.status, 403);
+  } finally { stop(s); }
 });
 
 test('GET /health needs no token and reports the version', async () => {

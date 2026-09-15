@@ -23,9 +23,12 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const VERSION = '1.6.0';
-const PORT = Number(process.env.VIV_COMMENTS_PORT ?? 31623);
-const VIV_PORT = process.env.VIV_PORT || 31622;
+const VERSION = '1.7.0';
+const VIV_PORT = Number(process.env.VIV_PORT) || 31622;
+// The pair moves together: the sidecar sits one port above the preview.
+// comments.js derives the same number from the page's own port, so a host
+// can use any pair without editing the browser script.
+const PORT = Number(process.env.VIV_COMMENTS_PORT ?? VIV_PORT + 1);
 const BIND = process.env.MARK_BIND ?? '127.0.0.1';
 const STATE_DIR = process.env.MARK_STATE_DIR || path.join(os.homedir(), '.local', 'state', 'mark');
 const MAX_BODY = 64 * 1024;

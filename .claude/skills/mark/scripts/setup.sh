@@ -117,7 +117,7 @@ if [ ! -e "$conf" ]; then
     if [ -z "$access" ]; then
       if [ -t 0 ]; then
         echo "How will your browser reach this host?"
-        echo "  ssh       - forward ports 31622 and 31623 over ssh; works from any computer (default)"
+        echo "  ssh       - forward two ports over ssh; works from any computer (default)"
         echo "  tailscale - listen on this host's Tailscale address; the only option that works from a phone"
         printf 'MARK_REMOTE_ACCESS [ssh/tailscale]: '
         read -r access || true
@@ -133,6 +133,15 @@ if [ ! -e "$conf" ]; then
     esac
   fi
 
+  # A host you read over an ssh tunnel must not use the same ports as the
+  # computer you read from, or the two cannot run at the same time. Give it
+  # its own pair by default.
+  if [ "$location" = remote ] && [ "$access" = ssh ]; then
+    mark_port="${MARK_PORT:-41622}"
+  else
+    mark_port="${MARK_PORT:-31622}"
+  fi
+
   cat > "$conf" <<EOF
 # mark's location — read by the \`mark\` command on every run. Environment
 # variables with the same names override these values.
@@ -142,16 +151,25 @@ if [ ! -e "$conf" ]; then
 #   remote: headless host. mark never opens a browser; it prints a URL.
 #
 # MARK_REMOTE_ACCESS (remote only)
-#   ssh (default): the comments sidecar listens on 127.0.0.1. Forward ports
-#     31622 and 31623 over ssh and open the printed localhost URL.
+#   ssh (default): the comments sidecar listens on 127.0.0.1. Forward the
+#     two ports over ssh and open the printed localhost URL. \`mark\` prints
+#     the exact ~/.ssh/config block to use.
 #   tailscale: the sidecar listens on this host's Tailscale address and the
 #     URL uses it. Needs Tailscale installed and this host on your tailnet
 #     (https://tailscale.com/download). The only option that works from a
-#     phone.
+#     phone. It does not work in the Claude Code browser panel, which refuses
+#     the second port on a host that is not localhost.
+#
+# MARK_PORT
+#   The preview port. The comment sidecar always uses the next port up, so
+#   MARK_PORT=$mark_port means $mark_port and $((mark_port + 1)).
+#   A host you read over an ssh tunnel needs a pair that the computer you
+#   read from does not already use.
 MARK_LOCATION=$location
 MARK_REMOTE_ACCESS=$access
+MARK_PORT=$mark_port
 EOF
-  echo "installed $conf (MARK_LOCATION=$location, MARK_REMOTE_ACCESS=$access)"
+  echo "installed $conf (MARK_LOCATION=$location, MARK_REMOTE_ACCESS=$access, MARK_PORT=$mark_port)"
 else
   echo "ok       $conf (exists, left as-is)"
 fi

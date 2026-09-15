@@ -29,6 +29,7 @@ fi
 # Environment beats mark.conf for both settings.
 env_location=${MARK_LOCATION:-}
 env_access=${MARK_REMOTE_ACCESS:-}
+env_port=${MARK_PORT:-}
 if [[ -f "$HOME/.config/vivify/mark.conf" ]]; then
   . "$HOME/.config/vivify/mark.conf"
 fi
@@ -41,8 +42,13 @@ if [[ $location == remote && -z $env_access && -z ${MARK_REMOTE_ACCESS:-} ]]; th
   echo "mark: mark.conf has no MARK_REMOTE_ACCESS; using ssh (add MARK_REMOTE_ACCESS=tailscale to keep Tailscale)" >&2
 fi
 
-port=${VIV_PORT:-31622}
-cport=${VIV_COMMENTS_PORT:-31623}
+# The two ports move as a pair: the sidecar sits one above the preview.
+# comments.js derives the same number in the browser, so a host that needs a
+# different pair (see MARK_PORT in mark.conf) only sets one number here.
+port=${VIV_PORT:-${env_port:-${MARK_PORT:-31622}}}
+cport=${VIV_COMMENTS_PORT:-$((port + 1))}
+# Both servers are started below and must see these values.
+export VIV_PORT=$port VIV_COMMENTS_PORT=$cport
 token_file="$HOME/.local/state/mark/token"
 
 case $location in
@@ -107,8 +113,8 @@ fi
 
 # An older sidecar (or none) answers here after an upgrade or a port clash.
 # It would not know /register or the token, so stop instead of guessing.
-if ! curl -sf --max-time 1 "$sidecar/health" | grep -qF '"version":"1.6.0"'; then
-  echo "mark: the comments sidecar on ${bind}:${cport} is missing or is older than mark 1.6.0." >&2
+if ! curl -sf --max-time 1 "$sidecar/health" | grep -qF '"version":"1.7.0"'; then
+  echo "mark: the comments sidecar on ${bind}:${cport} is missing or is older than mark 1.7.0." >&2
   echo "Stop both servers, then run mark again:" >&2
   echo "  pkill -f vivify-server; pkill -f comments-server.mjs" >&2
   echo "If ~/.config/vivify holds copies of mark's files (not links), copy the new comments-server.mjs and comments.js there first." >&2
@@ -152,9 +158,21 @@ echo "$url"
 
 # Hint goes to stderr so stdout stays the bare URL for callers that parse it.
 if [[ $location == remote && $remote_access == ssh ]]; then
+  alias_name="$(hostname -s)-mark"
   cat >&2 <<HINT
-remote host: forward the ports first, e.g.
-  ssh -L ${port}:localhost:${port} -L ${cport}:localhost:${cport} $(hostname)
-or add two LocalForward lines to ~/.ssh/config for this host.
+remote host: the browser reaches this preview over an ssh tunnel.
+On the computer you read from, add this to ~/.ssh/config:
+
+Host ${alias_name}
+  HostName $(hostname)
+  LocalForward ${port} localhost:${port}
+  LocalForward ${cport} localhost:${cport}
+  SessionType none
+  ExitOnForwardFailure yes
+
+Then keep \`ssh ${alias_name}\` running while you read. It opens only the
+two forwards and no shell. A separate connection is needed because some
+tools (the Claude Code desktop app among them) start ssh with
+ClearAllForwardings=yes, which drops forwards from the config.
 HINT
 fi
