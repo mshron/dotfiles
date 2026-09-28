@@ -55,8 +55,10 @@ mkdir -p "$HOME/.config"
 ln -sfn "$DOTFILES/.config/nvim" "$HOME/.config/nvim"
 ln -sfn "$DOTFILES/.config/aerospace" "$HOME/.config/aerospace"
 ln -sfn "$DOTFILES/.config/sketchybar" "$HOME/.config/sketchybar"
-# vivify config is owned by the mark skill (single tracked copy)
-ln -sfn "$DOTFILES/.claude/skills/mark/assets" "$HOME/.config/vivify"
+# vivify config is owned by the mark skill, which lives in its own repo
+# (github.com/TribeAI/mark) cloned to ~/code/mark
+MARK_DIR="$HOME/code/mark"
+[ -d "$MARK_DIR" ] && ln -sfn "$MARK_DIR/assets" "$HOME/.config/vivify"
 
 # cmux — symlink the single managed file (cmux writes other state into this dir)
 mkdir -p "$HOME/.config/cmux"
@@ -70,7 +72,7 @@ ln -sf "$DOTFILES/.config/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 mkdir -p "$HOME/.claude/hooks" "$HOME/.claude/skills"
 ln -sf "$DOTFILES/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 ln -sf "$DOTFILES/.claude/hooks/context-bar.sh" "$HOME/.claude/hooks/context-bar.sh"
-ln -sfn "$DOTFILES/.claude/skills/mark" "$HOME/.claude/skills/mark"
+[ -d "$MARK_DIR" ] && ln -sfn "$MARK_DIR" "$HOME/.claude/skills/mark"
 
 # settings.json also holds machine-specific state (installed plugins,
 # permission grants) so merge in just the statusLine and permissions
@@ -88,11 +90,15 @@ jq '.statusLine = {"type": "command", "command": "~/.claude/hooks/context-bar.sh
 # Codex — update the adapted instructions while preserving Codex's skill metadata.
 # Skip the copy when the target already matches (or is a symlink to the
 # same file — cp would fail with "identical" and abort the install).
-mkdir -p "$HOME/.agents/skills/mark"
-cmp -s "$DOTFILES/.claude/skills/mark/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md" \
-  || cp "$DOTFILES/.claude/skills/mark/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md"
+if [ -d "$MARK_DIR" ]; then
+  mkdir -p "$HOME/.agents/skills/mark"
+  cmp -s "$MARK_DIR/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md" \
+    || cp "$MARK_DIR/SKILL.md" "$HOME/.agents/skills/mark/SKILL.md"
 
-"$DOTFILES/.claude/skills/mark/scripts/setup.sh" || true
+  "$MARK_DIR/scripts/setup.sh" || true
+else
+  echo "note: mark skill not found at $MARK_DIR — clone github.com/TribeAI/mark there to install it" >&2
+fi
 
 # Ghostty (macOS location)
 if [ "$(uname)" = "Darwin" ]; then
